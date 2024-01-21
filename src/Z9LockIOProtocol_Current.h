@@ -7,36 +7,6 @@
 
 #include <stdint.h>
 
-// also need variable type here:
-// the name `variable` is just a placeholder. Maybe call it `countedData`
-template <unsigned N, typename CNT_T = uint8_t, typename DATA_T = uint8_t>
-struct variable
-{
-	using T = DATA_T;
-	static constexpr auto MAX = N;
-
-	auto& size () const = { return count; }
-	constexpr auto& value() const = { return data;  }
-	constexpr operator()() const T[]& const { return data; }
-
-	bool set(CNT_T len, const T *value)
-	{
-		if (len > N)
-			return false;           // TODO: error cases: should eventually throw
-
-		auto bytes = len * sizeof(T);
-		std::memcpy(data, value, bytes);
-		count = len;
-		return true;
-	}
-
-private:
-	T     data[N];
-	CNT_T count;
-};
-
-
-
 namespace z9 { namespace drivers { namespace z9lockio { namespace protocol {
 
 /**

@@ -695,19 +695,10 @@ using Z9_TYPES = list<
 			Z9_MEMBER(LockCredAuthorization, 8, mobileId, uint64_t),
 			Z9_MEMBER(LockCredAuthorization, 8, lockId, uint64_t),
 			Z9_MEMBER(LockCredAuthorization, 77, cred, LockCred),
-			// Z9_MEMBER(LockCredAuthorization, 1, numSchedUnids, uint8_t)
+			Z9_MEMBER(LockCredAuthorization, 1, numSchedUnids, uint8_t)
 			// TODO: 0 to 15 elements (0 to 60 bytes) | `schedUnids` | uint32_t   | ,
-            // XXX replace `numSchedUnids` & `schedUnids`(array) with `variable` instance
-            // XXX it has two methods: size & operator(). So `schedUnids.size()` will give
-            // XXX you the count & `schedUnids()` will give you pointer to array.
-            // XXX Also note, the `variable<15, uint8_t, uint32_t>` is just the type of the
-            // XXX member in "Z9LockIOProtocol_Current.h"
-            Z9_MEMBER(LockCredAuthorizations, 61, schedUnids, variable<15, uint8_t, uint32_t),
-			//Z9_MEMBER(LockCredAuthorization, 1, numSharedSecretBytes, int8_t)
-			// TODO: 0 to 16 elements (0 to 16 bytes) | `sharedSecretBytes` | uint8_t    |
-            // XXX same as above. The "data stored" in variable defaults to uint8_t, so no need
-            // XXX to specify it. -- just pass the length of the array.
-            Z9Member(LockCredAuthorizations, 17, sharedSecret, variable<16>)
+			Z9_MEMBER(LockCredAuthorization, 1, numSharedSecretBytes, int8_t)
+			// TODO: 0 to 16 elements (0 to 16 bytes) | `sharedSecretBytes` | uint8_t    | 
 		>
 	>,
 
@@ -728,9 +719,8 @@ using Z9_TYPES = list<
 
 	list<LockPublicKeyExchange, Z9_STRING("LockPublicKeyExchange"),
 		list<
-			//Z9_MEMBER(LockPublicKeyExchange, 1, numPublicKeyBytes, int8_t)
+			Z9_MEMBER(LockPublicKeyExchange, 1, numPublicKeyBytes, int8_t)
 			// TODO: 0 to 65 elements (0 to 65 bytes) | `publicKeyBytes` | uint8_t    | 
-            Z9_MEMBER(LockPublicKeyExchange, 66, publicKey, variable<65>)
 		>
 	>,
 
