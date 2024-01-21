@@ -782,8 +782,8 @@ public:
 	LockCredActions doublePresentationActions;
 	LockDevActionPermissions explicitActionPermissions;
 	int8_t trimBitsInLastCredByte;
-	uint8_t numCredBytes;
-	uint8_t credBytes[16];
+	// incorporated into subsequent variableArray: uint8_t numCredBytes;
+	variableArray<16, uint8_t, uint8_t> credBytes;
 	uint8_t pinDigitNybbles[4];
 	uint8_t schedMaskBytes[2];
 
@@ -896,8 +896,8 @@ public:
 	static const int MAX_SERIALIZED_LEN = 59;
 	uint8_t schedOid;
 	LockDevActionType action;
-	int8_t numElements;
-	LockSchedElementPolicy elements[8];
+	// incorporated into subsequent variableArray: int8_t numElements;
+	variableArray<8, int8_t, LockSchedElementPolicy> elements;
 
 };
 
@@ -916,8 +916,8 @@ public:
 	uint32_t unid;
 	LockDateTime_ToMinute effective;
 	LockDateTime_ToMinute expires;
-	int8_t numElements;
-	LockSchedElement elements[8];
+	// incorporated into subsequent variableArray: int8_t numElements;
+	variableArray<8, int8_t, LockSchedElement> elements;
 
 };
 
@@ -964,8 +964,8 @@ public:
 	LockHostGrantConfig hostGrantConfig;
 	uint8_t maxPinLength;
 	LockTimeZone timeZone;
-	uint8_t numEvtPolicy;
-	LockEvtPolicy evtPolicies[32];
+	// incorporated into subsequent variableArray: uint8_t numEvtPolicy;
+	variableArray<32, uint8_t, LockEvtPolicy> evtPolicies;
 
 };
 
@@ -1059,8 +1059,8 @@ public:
 	static const int MAX_SERIALIZED_LEN = 147;
 	static const int8_t DISCRIMINATOR = 2;
 	int64_t requestId;
-	int8_t updateConfigPresent;
-	LockConfig updateConfig[1];
+	// incorporated into subsequent variableArray: int8_t updateConfigPresent;
+	variableArray<1, int8_t, LockConfig> updateConfig;
 
 };
 
@@ -1115,8 +1115,8 @@ public:
 	static const int MAX_SERIALIZED_LEN = 675;
 	static const int8_t DISCRIMINATOR = 5;
 	bool priority;
-	uint8_t evtCount;
-	LockEvt evt[32];
+	// incorporated into subsequent variableArray: uint8_t evtCount;
+	variableArray<32, uint8_t, LockEvt> evt;
 
 };
 
@@ -1275,8 +1275,8 @@ public:
 	uint16_t requestId;
 	int16_t errorCode;
 	bool eof;
-	int16_t bytesCount;
-	uint8_t bytes[800];
+	// incorporated into subsequent variableArray: int16_t bytesCount;
+	variableArray<800, int16_t, uint8_t> bytes;
 
 };
 
@@ -1298,8 +1298,8 @@ public:
 	LockFileIdentifier id;
 	uint64_t offset;
 	bool eof;
-	int16_t bytesCount;
-	uint8_t bytes[800];
+	// incorporated into subsequent variableArray: int16_t bytesCount;
+	variableArray<800, int16_t, uint8_t> bytes;
 
 };
 
@@ -1396,8 +1396,8 @@ public:
 	static const int8_t DISCRIMINATOR = 19;
 	int16_t requestId;
 	int16_t errorCode;
-	int8_t configPresent;
-	LockConfig config[1];
+	// incorporated into subsequent variableArray: int8_t configPresent;
+	variableArray<1, int8_t, LockConfig> config;
 
 };
 
@@ -1549,8 +1549,8 @@ public:
 	static const int MAX_SERIALIZED_LEN = 426;
 	static const int8_t DISCRIMINATOR = 27;
 	int64_t requestId;
-	uint8_t numHol;
-	LockHol hol[32];
+	// incorporated into subsequent variableArray: uint8_t numHol;
+	variableArray<32, uint8_t, LockHol> hol;
 
 };
 
@@ -1568,8 +1568,8 @@ public:
 	static const int MAX_SERIALIZED_LEN = 865;
 	static const int8_t DISCRIMINATOR = 28;
 	int64_t requestId;
-	uint8_t numSched;
-	LockSched sched[15];
+	// incorporated into subsequent variableArray: uint8_t numSched;
+	variableArray<15, uint8_t, LockSched> sched;
 
 };
 
@@ -1587,8 +1587,8 @@ public:
 	static const int MAX_SERIALIZED_LEN = 482;
 	static const int8_t DISCRIMINATOR = 29;
 	int64_t requestId;
-	uint8_t numSchedPolicy;
-	LockSchedPolicy schedPolicy[8];
+	// incorporated into subsequent variableArray: uint8_t numSchedPolicy;
+	variableArray<8, uint8_t, LockSchedPolicy> schedPolicy;
 
 };
 
@@ -1607,8 +1607,8 @@ public:
 	static const int8_t DISCRIMINATOR = 30;
 	int64_t requestId;
 	bool deleteAllCred;
-	uint8_t numUpsertOrDeleteCred;
-	LockCred upsertOrDeleteCred[16];
+	// incorporated into subsequent variableArray: uint8_t numUpsertOrDeleteCred;
+	variableArray<16, uint8_t, LockCred> upsertOrDeleteCred;
 
 };
 
@@ -1627,8 +1627,8 @@ public:
 	static const int8_t DISCRIMINATOR = 31;
 	int16_t requestId;
 	int16_t errorCode;
-	uint8_t numHol;
-	LockHol hol[64];
+	// incorporated into subsequent variableArray: uint8_t numHol;
+	variableArray<64, uint8_t, LockHol> hol;
 
 };
 
@@ -1647,8 +1647,8 @@ public:
 	static const int8_t DISCRIMINATOR = 32;
 	int16_t requestId;
 	int16_t errorCode;
-	uint8_t numSched;
-	LockSched sched[15];
+	// incorporated into subsequent variableArray: uint8_t numSched;
+	variableArray<15, uint8_t, LockSched> sched;
 
 };
 
@@ -1667,8 +1667,8 @@ public:
 	static const int8_t DISCRIMINATOR = 33;
 	int16_t requestId;
 	int16_t errorCode;
-	uint8_t numSchedPolicy;
-	LockSchedPolicy schedPolicy[8];
+	// incorporated into subsequent variableArray: uint8_t numSchedPolicy;
+	variableArray<8, uint8_t, LockSchedPolicy> schedPolicy;
 
 };
 
@@ -1687,8 +1687,8 @@ public:
 	static const int8_t DISCRIMINATOR = 34;
 	int16_t requestId;
 	int16_t errorCode;
-	uint8_t numCred;
-	LockCred cred[16];
+	// incorporated into subsequent variableArray: uint8_t numCred;
+	variableArray<16, uint8_t, LockCred> cred;
 
 };
 
@@ -1708,12 +1708,11 @@ public:
 	uint64_t mobileId;
 	uint64_t lockId;
 	LockCred cred;
-	//XXX uint8_t numSchedUnids;
-	//XXX uint32_t schedUnids[15];
-    variable<15, uint8_t, uint32_t> schedUnids;
-	//XXX int8_t numSharedSecretBytes;
-	//XXX uint8_t sharedSecretBytes[16];
-    variable<16> sharedSecret;
+	// incorporated into subsequent variableArray: uint8_t numSchedUnids;
+	variableArray<15, uint8_t, uint32_t> schedUnids;
+	// incorporated into subsequent variableArray: int8_t numSharedSecretBytes;
+	variableArray<16, int8_t, uint8_t> sharedSecretBytes;
+
 };
 
 
@@ -1766,9 +1765,9 @@ class LockPublicKeyExchange : public LockPacketContent
 public:
 	static const int MAX_SERIALIZED_LEN = 67;
 	static const int8_t DISCRIMINATOR = 41;
-	//XXX int8_t numPublicKeyBytes;
-	//XXX uint8_t publicKeyBytes[65];
-    variable<65> publicKey;
+	// incorporated into subsequent variableArray: int8_t numPublicKeyBytes;
+	variableArray<65, int8_t, uint8_t> publicKeyBytes;
+
 };
 
 
@@ -1784,8 +1783,8 @@ class LockMobileBleChallengeNonce : public LockPacketContent
 public:
 	static const int MAX_SERIALIZED_LEN = 18;
 	static const int8_t DISCRIMINATOR = 43;
-	int8_t numNonceBytes;
-	uint8_t nonceBytes[16];
+	// incorporated into subsequent variableArray: int8_t numNonceBytes;
+	variableArray<16, int8_t, uint8_t> nonceBytes;
 
 };
 
@@ -1827,8 +1826,8 @@ class LockOpaqueContent : public LockPacketContent
 public:
 	static const int MAX_SERIALIZED_LEN = 1026;
 	static const int8_t DISCRIMINATOR = 42;
-	int16_t numOpaqueBytes;
-	uint8_t opaqueBytes[1023];
+	// incorporated into subsequent variableArray: int16_t numOpaqueBytes;
+	variableArray<1023, int16_t, uint8_t> opaqueBytes;
 
 };
 
