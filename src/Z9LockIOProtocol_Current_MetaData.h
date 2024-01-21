@@ -2,48 +2,13 @@
 
 // Z9LockIOProtocol_Current_MetaData.h
 
-#include "Z9_Serialize.h"
+#include "ProtocolMetadata.h"
 #include "Z9LockIOProtocol_Current.h"
-namespace z9{}
-namespace z9::Z9LockIO
+
+namespace z9::drivers::z9lockio::protocol
 {
+
 using meta::list;
-using meta::int_;
-{
-// `variable` structure which can store a count + array of counted bytes
-
-template <unsigned N, typename CNT_T = uint8_t, typename DATA_T = uint8_t>
-struct variable
-{
-	using T = DATA_T;
-	static constexpr auto MAX = N;
-
-	auto& size () const = { return count; }
-	constexpr auto& value() const = { return data;  }
-	constexpr operator()() const T[]& const { return data; }
-
-	bool set(CNT_T len, const T *value)
-	{
-		if (len > N)
-			return false;           // TODO: error cases: should eventually throw
-
-		auto bytes = len * sizeof(T);
-		std::memcpy(data, value, bytes);
-		count = len;
-		return true;
-	}
-
-private:
-	T     data[N];
-	CNT_T count;
-};
-
-#define Z9_MEMBER(s_type, wire_size, name, m_type) \
-	list<int_<wire_size>,                   \
-		int_<offsetof(s_type, name)>,      \
-		int_<sizeof(m_type)>,              \
-		m_type,                            \
-		Z9_STRING(#name)>
 
 using Z9_TYPES = list<
 	list<LockDate, Z9_STRING("LockDate"),
@@ -737,4 +702,7 @@ using Z9_TYPES = list<
 			// TODO: 1 to 1243 bytes | `content`  | LockPacketContent | discriminator-based structure
 		>
 	>
+>;
+
+}
 
