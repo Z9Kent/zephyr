@@ -7,6 +7,36 @@
 
 #include <stdint.h>
 
+// also need variable type here:
+// the name `variable` is just a placeholder. Maybe call it `countedData`
+template <unsigned N, typename CNT_T = uint8_t, typename DATA_T = uint8_t>
+struct variable
+{
+	using T = DATA_T;
+	static constexpr auto MAX = N;
+
+	auto& size () const = { return count; }
+	constexpr auto& value() const = { return data;  }
+	constexpr operator()() const T[]& const { return data; }
+
+	bool set(CNT_T len, const T *value)
+	{
+		if (len > N)
+			return false;           // TODO: error cases: should eventually throw
+
+		auto bytes = len * sizeof(T);
+		std::memcpy(data, value, bytes);
+		count = len;
+		return true;
+	}
+
+private:
+	T     data[N];
+	CNT_T count;
+};
+
+
+
 namespace z9 { namespace drivers { namespace z9lockio { namespace protocol {
 
 /**
@@ -1678,11 +1708,12 @@ public:
 	uint64_t mobileId;
 	uint64_t lockId;
 	LockCred cred;
-	uint8_t numSchedUnids;
-	uint32_t schedUnids[15];
-	int8_t numSharedSecretBytes;
-	uint8_t sharedSecretBytes[16];
-
+	//XXX uint8_t numSchedUnids;
+	//XXX uint32_t schedUnids[15];
+    variable<15, uint8_t, uint32_t> schedUnids;
+	//XXX int8_t numSharedSecretBytes;
+	//XXX uint8_t sharedSecretBytes[16];
+    variable<16> sharedSecret;
 };
 
 
@@ -1735,9 +1766,9 @@ class LockPublicKeyExchange : public LockPacketContent
 public:
 	static const int MAX_SERIALIZED_LEN = 67;
 	static const int8_t DISCRIMINATOR = 41;
-	int8_t numPublicKeyBytes;
-	uint8_t publicKeyBytes[65];
-
+	//XXX int8_t numPublicKeyBytes;
+	//XXX uint8_t publicKeyBytes[65];
+    variable<65> publicKey;
 };
 
 
