@@ -285,8 +285,7 @@ using Z9_TYPES = list<
 			Z9_MEMBER(LockCred, 9, doublePresentationActions, LockCredActions),
 			Z9_MEMBER(LockCred, 14, explicitActionPermissions, LockDevActionPermissions),
 			Z9_MEMBER(LockCred, 1, trimBitsInLastCredByte, int8_t),
-			Z9_MEMBER(LockCred, 1, numCredBytes, uint8_t)
-			// TODO: 0 to 16 elements (0 to 16 bytes) | `credBytes` | uint8_t    | 
+			Z9_MEMBER(LockCred, 17, credBytes, variableArray<16, uint8_t, uint8_t>)
 			// TODO: 4 elements (4 bytes) | `pinDigitNybbles` | uint8_t    | 
 			// TODO: 2 elements (2 bytes) | `schedMaskBytes` | uint8_t    | 
 		>
@@ -339,8 +338,7 @@ using Z9_TYPES = list<
 		list<
 			Z9_MEMBER(LockSchedPolicy, 1, schedOid, uint8_t),
 			Z9_MEMBER(LockSchedPolicy, 1, action, LockDevActionType),
-			Z9_MEMBER(LockSchedPolicy, 1, numElements, int8_t)
-			// TODO: 0 to 8 elements (0 to 56 bytes) | `elements` | array of `LockSchedElementPolicy` | 
+			Z9_MEMBER(LockSchedPolicy, 57, elements, variableArray<8, int8_t, LockSchedElementPolicy>)
 		>
 	>,
 
@@ -349,8 +347,7 @@ using Z9_TYPES = list<
 			Z9_MEMBER(LockSched, 4, unid, uint32_t),
 			Z9_MEMBER(LockSched, 6, effective, LockDateTime_ToMinute),
 			Z9_MEMBER(LockSched, 6, expires, LockDateTime_ToMinute),
-			Z9_MEMBER(LockSched, 1, numElements, int8_t)
-			// TODO: 0 to 8 elements (0 to 40 bytes) | `elements` | array of `LockSchedElement` | 
+			Z9_MEMBER(LockSched, 41, elements, variableArray<8, int8_t, LockSchedElement>)
 		>
 	>,
 
@@ -377,8 +374,7 @@ using Z9_TYPES = list<
 			Z9_MEMBER(LockConfig, 3, hostGrantConfig, LockHostGrantConfig),
 			Z9_MEMBER(LockConfig, 1, maxPinLength, uint8_t),
 			Z9_MEMBER(LockConfig, 12, timeZone, LockTimeZone),
-			Z9_MEMBER(LockConfig, 1, numEvtPolicy, uint8_t)
-			// TODO: 0 to 32 elements (0 to 96 bytes) | `evtPolicies` | array of `LockEvtPolicy` | 
+			Z9_MEMBER(LockConfig, 97, evtPolicies, variableArray<32, uint8_t, LockEvtPolicy>)
 		>
 	>,
 
@@ -419,8 +415,7 @@ using Z9_TYPES = list<
 	list<LockDbChange_Config, Z9_STRING("LockDbChange_Config"),
 		list<
 			Z9_MEMBER(LockDbChange_Config, 8, requestId, int64_t),
-			Z9_MEMBER(LockDbChange_Config, 1, updateConfigPresent, int8_t)
-			// TODO: 0 to 1 elements (0 to 137 bytes) | `updateConfig` | array of `LockConfig` | 
+			Z9_MEMBER(LockDbChange_Config, 138, updateConfig, variableArray<1, int8_t, LockConfig>)
 		>
 	>,
 
@@ -442,8 +437,7 @@ using Z9_TYPES = list<
 	list<LockEvtBatch, Z9_STRING("LockEvtBatch"),
 		list<
 			Z9_MEMBER(LockEvtBatch, 1, priority, bool),
-			Z9_MEMBER(LockEvtBatch, 1, evtCount, uint8_t)
-			// TODO: 0 to 32 elements (0 to 672 bytes) | `evt`      | array of `LockEvt` | 
+			Z9_MEMBER(LockEvtBatch, 673, evt, variableArray<32, uint8_t, LockEvt>)
 		>
 	>,
 
@@ -504,8 +498,7 @@ using Z9_TYPES = list<
 			Z9_MEMBER(LockPullFileChunkResp, 2, requestId, uint16_t),
 			Z9_MEMBER(LockPullFileChunkResp, 2, errorCode, int16_t),
 			Z9_MEMBER(LockPullFileChunkResp, 1, eof, bool),
-			Z9_MEMBER(LockPullFileChunkResp, 2, bytesCount, int16_t)
-			// TODO: 0 to 800 elements (0 to 800 bytes) | `bytes`    | uint8_t    | 
+			Z9_MEMBER(LockPullFileChunkResp, 802, bytes, variableArray<800, int16_t, uint8_t>)
 		>
 	>,
 
@@ -516,8 +509,7 @@ using Z9_TYPES = list<
 			Z9_MEMBER(LockPushFileChunkReq, 1, id, LockFileIdentifier),
 			Z9_MEMBER(LockPushFileChunkReq, 8, offset, uint64_t),
 			Z9_MEMBER(LockPushFileChunkReq, 1, eof, bool),
-			Z9_MEMBER(LockPushFileChunkReq, 2, bytesCount, int16_t)
-			// TODO: 0 to 800 elements (0 to 800 bytes) | `bytes`    | uint8_t    | 
+			Z9_MEMBER(LockPushFileChunkReq, 802, bytes, variableArray<800, int16_t, uint8_t>)
 		>
 	>,
 
@@ -559,8 +551,7 @@ using Z9_TYPES = list<
 		list<
 			Z9_MEMBER(LockDbQueryResp_Config, 2, requestId, int16_t),
 			Z9_MEMBER(LockDbQueryResp_Config, 2, errorCode, int16_t),
-			Z9_MEMBER(LockDbQueryResp_Config, 1, configPresent, int8_t)
-			// TODO: 0 to 1 elements (0 to 137 bytes) | `config`   | array of `LockConfig` | 
+			Z9_MEMBER(LockDbQueryResp_Config, 138, config, variableArray<1, int8_t, LockConfig>)
 		>
 	>,
 
@@ -624,24 +615,21 @@ using Z9_TYPES = list<
 	list<LockDbChange_Hol, Z9_STRING("LockDbChange_Hol"),
 		list<
 			Z9_MEMBER(LockDbChange_Hol, 8, requestId, int64_t),
-			Z9_MEMBER(LockDbChange_Hol, 1, numHol, uint8_t)
-			// TODO: 0 to 32 elements (0 to 416 bytes) | `hol`      | array of `LockHol` | 
+			Z9_MEMBER(LockDbChange_Hol, 417, hol, variableArray<32, uint8_t, LockHol>)
 		>
 	>,
 
 	list<LockDbChange_Sched, Z9_STRING("LockDbChange_Sched"),
 		list<
 			Z9_MEMBER(LockDbChange_Sched, 8, requestId, int64_t),
-			Z9_MEMBER(LockDbChange_Sched, 1, numSched, uint8_t)
-			// TODO: 0 to 15 elements (0 to 855 bytes) | `sched`    | array of `LockSched` | 
+			Z9_MEMBER(LockDbChange_Sched, 856, sched, variableArray<15, uint8_t, LockSched>)
 		>
 	>,
 
 	list<LockDbChange_SchedPolicy, Z9_STRING("LockDbChange_SchedPolicy"),
 		list<
 			Z9_MEMBER(LockDbChange_SchedPolicy, 8, requestId, int64_t),
-			Z9_MEMBER(LockDbChange_SchedPolicy, 1, numSchedPolicy, uint8_t)
-			// TODO: 0 to 8 elements (0 to 472 bytes) | `schedPolicy` | array of `LockSchedPolicy` | 
+			Z9_MEMBER(LockDbChange_SchedPolicy, 473, schedPolicy, variableArray<8, uint8_t, LockSchedPolicy>)
 		>
 	>,
 
@@ -649,8 +637,7 @@ using Z9_TYPES = list<
 		list<
 			Z9_MEMBER(LockDbChange_Cred, 8, requestId, int64_t),
 			Z9_MEMBER(LockDbChange_Cred, 1, deleteAllCred, bool),
-			Z9_MEMBER(LockDbChange_Cred, 1, numUpsertOrDeleteCred, uint8_t)
-			// TODO: 0 to 16 elements (0 to 1232 bytes) | `upsertOrDeleteCred` | array of `LockCred` | 
+			Z9_MEMBER(LockDbChange_Cred, 1233, upsertOrDeleteCred, variableArray<16, uint8_t, LockCred>)
 		>
 	>,
 
@@ -658,8 +645,7 @@ using Z9_TYPES = list<
 		list<
 			Z9_MEMBER(LockDbQueryResp_Hol, 2, requestId, int16_t),
 			Z9_MEMBER(LockDbQueryResp_Hol, 2, errorCode, int16_t),
-			Z9_MEMBER(LockDbQueryResp_Hol, 1, numHol, uint8_t)
-			// TODO: 0 to 64 elements (0 to 832 bytes) | `hol`      | array of `LockHol` | 
+			Z9_MEMBER(LockDbQueryResp_Hol, 833, hol, variableArray<64, uint8_t, LockHol>)
 		>
 	>,
 
@@ -667,8 +653,7 @@ using Z9_TYPES = list<
 		list<
 			Z9_MEMBER(LockDbQueryResp_Sched, 2, requestId, int16_t),
 			Z9_MEMBER(LockDbQueryResp_Sched, 2, errorCode, int16_t),
-			Z9_MEMBER(LockDbQueryResp_Sched, 1, numSched, uint8_t)
-			// TODO: 0 to 15 elements (0 to 855 bytes) | `sched`    | array of `LockSched` | 
+			Z9_MEMBER(LockDbQueryResp_Sched, 856, sched, variableArray<15, uint8_t, LockSched>)
 		>
 	>,
 
@@ -676,8 +661,7 @@ using Z9_TYPES = list<
 		list<
 			Z9_MEMBER(LockDbQueryResp_SchedPolicy, 2, requestId, int16_t),
 			Z9_MEMBER(LockDbQueryResp_SchedPolicy, 2, errorCode, int16_t),
-			Z9_MEMBER(LockDbQueryResp_SchedPolicy, 1, numSchedPolicy, uint8_t)
-			// TODO: 0 to 8 elements (0 to 472 bytes) | `schedPolicy` | array of `LockSchedPolicy` | 
+			Z9_MEMBER(LockDbQueryResp_SchedPolicy, 473, schedPolicy, variableArray<8, uint8_t, LockSchedPolicy>)
 		>
 	>,
 
@@ -685,8 +669,7 @@ using Z9_TYPES = list<
 		list<
 			Z9_MEMBER(LockDbQueryResp_Cred, 2, requestId, int16_t),
 			Z9_MEMBER(LockDbQueryResp_Cred, 2, errorCode, int16_t),
-			Z9_MEMBER(LockDbQueryResp_Cred, 1, numCred, uint8_t)
-			// TODO: 0 to 16 elements (0 to 1232 bytes) | `cred`     | array of `LockCred` | 
+			Z9_MEMBER(LockDbQueryResp_Cred, 1233, cred, variableArray<16, uint8_t, LockCred>)
 		>
 	>,
 
@@ -695,10 +678,8 @@ using Z9_TYPES = list<
 			Z9_MEMBER(LockCredAuthorization, 8, mobileId, uint64_t),
 			Z9_MEMBER(LockCredAuthorization, 8, lockId, uint64_t),
 			Z9_MEMBER(LockCredAuthorization, 77, cred, LockCred),
-			Z9_MEMBER(LockCredAuthorization, 1, numSchedUnids, uint8_t)
-			// TODO: 0 to 15 elements (0 to 60 bytes) | `schedUnids` | uint32_t   | ,
-			Z9_MEMBER(LockCredAuthorization, 1, numSharedSecretBytes, int8_t)
-			// TODO: 0 to 16 elements (0 to 16 bytes) | `sharedSecretBytes` | uint8_t    | 
+			Z9_MEMBER(LockCredAuthorization, 61, schedUnids, variableArray<15, uint8_t, uint32_t>),
+			Z9_MEMBER(LockCredAuthorization, 17, sharedSecretBytes, variableArray<16, int8_t, uint8_t>)
 		>
 	>,
 
@@ -719,15 +700,13 @@ using Z9_TYPES = list<
 
 	list<LockPublicKeyExchange, Z9_STRING("LockPublicKeyExchange"),
 		list<
-			Z9_MEMBER(LockPublicKeyExchange, 1, numPublicKeyBytes, int8_t)
-			// TODO: 0 to 65 elements (0 to 65 bytes) | `publicKeyBytes` | uint8_t    | 
+			Z9_MEMBER(LockPublicKeyExchange, 66, publicKeyBytes, variableArray<65, int8_t, uint8_t>)
 		>
 	>,
 
 	list<LockMobileBleChallengeNonce, Z9_STRING("LockMobileBleChallengeNonce"),
 		list<
-			Z9_MEMBER(LockMobileBleChallengeNonce, 1, numNonceBytes, int8_t)
-			// TODO: 0 to 16 elements (0 to 16 bytes) | `nonceBytes` | uint8_t    | 
+			Z9_MEMBER(LockMobileBleChallengeNonce, 17, nonceBytes, variableArray<16, int8_t, uint8_t>)
 		>
 	>,
 
@@ -747,8 +726,7 @@ using Z9_TYPES = list<
 
 	list<LockOpaqueContent, Z9_STRING("LockOpaqueContent"),
 		list<
-			Z9_MEMBER(LockOpaqueContent, 2, numOpaqueBytes, int16_t)
-			// TODO: 0 to 1023 elements (0 to 1023 bytes) | `opaqueBytes` | uint8_t    | 
+			Z9_MEMBER(LockOpaqueContent, 1025, opaqueBytes, variableArray<1023, int16_t, uint8_t>)
 		>
 	>,
 
