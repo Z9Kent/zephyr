@@ -75,8 +75,8 @@ public:
 	static const int8_t DISCRIMINATOR = 1;
 	int8_t readerIndex;
 	int8_t trimBitsInLastByte;
-	int8_t numBytes;
-	int8_t bytes[32];
+	// incorporated into subsequent variableArray: int8_t numBytes;
+	variableArray<32, int8_t, int8_t> bytes;
 
 };
 
@@ -212,8 +212,8 @@ public:
 	int32_t offset;
 	bool eof;
 	int8_t exception;
-	int16_t numBytes;
-	int8_t bytes[1024];
+	// incorporated into subsequent variableArray: int16_t numBytes;
+	variableArray<1024, int16_t, int8_t> bytes;
 
 };
 
@@ -318,8 +318,8 @@ public:
 	static const int MAX_SERIALIZED_LEN = 35;
 	static const int8_t DISCRIMINATOR = 24;
 	int8_t keypadIndex;
-	int8_t numKeys;
-	int8_t keys[32];
+	// incorporated into subsequent variableArray: int8_t numKeys;
+	variableArray<32, int8_t, int8_t> keys;
 
 };
 
@@ -337,8 +337,8 @@ public:
 	static const int MAX_SERIALIZED_LEN = 35;
 	static const int8_t DISCRIMINATOR = 25;
 	int8_t readerIndex;
-	int8_t numUserIdChars;
-	int8_t userIdChars[32];
+	// incorporated into subsequent variableArray: int8_t numUserIdChars;
+	variableArray<32, int8_t, int8_t> userIdChars;
 
 };
 
@@ -507,8 +507,8 @@ public:
 	static const int MAX_SERIALIZED_LEN = 51;
 	static const int8_t DISCRIMINATOR = 6;
 	int8_t portIndex;
-	int8_t numBytes;
-	int8_t bytes[48];
+	// incorporated into subsequent variableArray: int8_t numBytes;
+	variableArray<48, int8_t, int8_t> bytes;
 
 };
 
@@ -526,8 +526,8 @@ public:
 	static const int MAX_SERIALIZED_LEN = 51;
 	static const int8_t DISCRIMINATOR = 20;
 	int8_t portIndex;
-	int8_t numBytes;
-	int8_t bytes[48];
+	// incorporated into subsequent variableArray: int8_t numBytes;
+	variableArray<48, int8_t, int8_t> bytes;
 
 };
 
@@ -614,8 +614,8 @@ public:
 	static const int8_t DISCRIMINATOR = 2;
 	int8_t readerIndex;
 	int8_t trimBitsInLastByte;
-	int8_t numBytes;
-	int8_t bytes[32];
+	// incorporated into subsequent variableArray: int8_t numBytes;
+	variableArray<32, int8_t, int8_t> bytes;
 
 };
 
@@ -636,8 +636,8 @@ public:
 	int8_t doorModeType;
 	int8_t stateType;
 	int32_t stateTypeSeqNo;
-	int8_t numUserIdChars;
-	int8_t userIdChars[32];
+	// incorporated into subsequent variableArray: int8_t numUserIdChars;
+	variableArray<32, int8_t, int8_t> userIdChars;
 	bool credUnidPresent;
 	int32_t credUnid;
 	bool credHolderUnidPresent;
@@ -714,8 +714,8 @@ class EncryptedContent : public PacketContent
 public:
 	static const int MAX_SERIALIZED_LEN = 1027;
 	static const int8_t DISCRIMINATOR = 35;
-	int16_t numBytes;
-	int8_t bytes[1024];
+	// incorporated into subsequent variableArray: int16_t numBytes;
+	variableArray<1024, int16_t, int8_t> bytes;
 
 };
 
@@ -733,8 +733,8 @@ public:
 	static const int MAX_SERIALIZED_LEN = 19;
 	static const int8_t DISCRIMINATOR = 36;
 	EncryptionKeyExchangeType type;
-	int8_t numBytes;
-	int8_t bytes[16];
+	// incorporated into subsequent variableArray: int8_t numBytes;
+	variableArray<16, int8_t, int8_t> bytes;
 
 };
 
@@ -752,8 +752,8 @@ public:
 	static const int MAX_SERIALIZED_LEN = 68;
 	static const int8_t DISCRIMINATOR = 37;
 	ApplicationEncryptionKeyExchangeType type;
-	int8_t numBytes;
-	int8_t bytes[65];
+	// incorporated into subsequent variableArray: int8_t numBytes;
+	variableArray<65, int8_t, int8_t> bytes;
 
 };
 
