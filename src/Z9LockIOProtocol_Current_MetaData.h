@@ -9,40 +9,37 @@ namespace z9::Z9LockIO
 {
 using meta::list;
 using meta::int_;
-
-// XXX This comment is on the new `variable` structure which can store
-// XXX a count + array of counted bytes
+{
+// `variable` structure which can store a count + array of counted bytes
 
 template <unsigned N, typename CNT_T = uint8_t, typename DATA_T = uint8_t>
 struct variable
 {
-    using T = DATA_T;
-    static constexpr auto MAX = N;
+	using T = DATA_T;
+	static constexpr auto MAX = N;
 
-    auto& size () const = { return count; }
-    constexpr auto& value() const = { return data;  }
-    constexpr operator()() const T[]& const { return data; }
+	auto& size () const = { return count; }
+	constexpr auto& value() const = { return data;  }
+	constexpr operator()() const T[]& const { return data; }
 
-    bool set(CNT_T len, const T *value)
-    {
-        if (len > N)
-            return false;           // TODO: error cases: should eventually "throw"
+	bool set(CNT_T len, const T *value)
+	{
+		if (len > N)
+			return false;           // TODO: error cases: should eventually throw
 
-        auto bytes = len * sizeof(T);
-        std::memcpy(data, value, bytes);
-        count = len;
-        return true;
-    }
+		auto bytes = len * sizeof(T);
+		std::memcpy(data, value, bytes);
+		count = len;
+		return true;
+	}
 
 private:
-    T     data[N];
-    CNT_T count;
+	T     data[N];
+	CNT_T count;
 };
 
-// XXX end comment on `countedType` structure
-
 #define Z9_MEMBER(s_type, wire_size, name, m_type) \
-    list<int_<wire_size>,                  \
+	list<int_<wire_size>,                   \
 		int_<offsetof(s_type, name)>,      \
 		int_<sizeof(m_type)>,              \
 		m_type,                            \
@@ -99,7 +96,6 @@ using Z9_TYPES = list<
 		>
 	>,
 
-    // is an enum??
 	list<LockEvtContent, Z9_STRING("LockEvtContent"),
 		list<
 			Z9_MEMBER(LockEvtContent, 1, contentType, int8_t)
@@ -150,7 +146,7 @@ using Z9_TYPES = list<
 
 	list<LockCredActions, Z9_STRING("LockCredActions"),
 		list<
-			Z9_MEMBER(LockCredActions, 1, access, bool)
+			Z9_MEMBER(LockCredActions, 1, access, bool),
 			Z9_MEMBER(LockCredActions, 1, setLockMode_STATIC_STATE_UNLOCKED, bool),
 			Z9_MEMBER(LockCredActions, 1, setLockMode_EMERGENCY_STATIC_STATE_UNLOCKED, bool),
 			Z9_MEMBER(LockCredActions, 1, setLockMode_STATIC_STATE_LOCKED, bool),
@@ -247,15 +243,14 @@ using Z9_TYPES = list<
 	list<LockEvt, Z9_STRING("LockEvt"),
 		list<
 			Z9_MEMBER(LockEvt, 7, dateTime, LockDateTime_ToSecond),
-			Z9_MEMBER(LockEvt, 7, modifiers, LockEvtModifiers),
-			Z9_MEMBER(LockEvt, 7, event, variable<6, LockEvtCode>)
-			//Z9_MEMBER(LockEvt, 1, evtCode, LockEvtCode)
+			Z9_MEMBER(LockEvt, 1, evtCode, LockEvtCode),
+			Z9_MEMBER(LockEvt, 7, modifiers, LockEvtModifiers)
 			// TODO: 1 to 6 bytes | `content`  | LockEvtContent | discriminator-based structure
 		>
 	>,
 
 	list<LockStatus, Z9_STRING("LockStatus"),
-		list<,
+		list<
 			Z9_MEMBER(LockStatus, 1, mode, LockMode),
 			Z9_MEMBER(LockStatus, 1, tamper, bool),
 			Z9_MEMBER(LockStatus, 1, batteryLow, bool),
@@ -347,7 +342,6 @@ using Z9_TYPES = list<
 			Z9_MEMBER(LockSchedPolicy, 1, numElements, int8_t)
 			// TODO: 0 to 8 elements (0 to 56 bytes) | `elements` | array of `LockSchedElementPolicy` | 
 		>
-        Z9_MEMBER
 	>,
 
 	list<LockSched, Z9_STRING("LockSched"),
@@ -398,7 +392,7 @@ using Z9_TYPES = list<
 	list<LockEvtIdentifierRange, Z9_STRING("LockEvtIdentifierRange"),
 		list<
 			Z9_MEMBER(LockEvtIdentifierRange, 8, start, LockEvtIdentifier),
-			Z9_MEMBER(LockEvtIdentifierRange, 8, stop, LockEvtIdentifier),
+			Z9_MEMBER(LockEvtIdentifierRange, 8, stop, LockEvtIdentifier)
 		>
 	>,
 
@@ -428,8 +422,6 @@ using Z9_TYPES = list<
 			Z9_MEMBER(LockDbChange_Config, 1, updateConfigPresent, int8_t)
 			// TODO: 0 to 1 elements (0 to 137 bytes) | `updateConfig` | array of `LockConfig` | 
 		>
-        // will want to deserialize in separate memory location...
-        Z9_MEMBER(LockDbChange_Config, 137, config, LockConfig)
 	>,
 
 	list<LockDbChangeResp, Z9_STRING("LockDbChangeResp"),
@@ -603,7 +595,7 @@ using Z9_TYPES = list<
 	list<LockDevActionResp, Z9_STRING("LockDevActionResp"),
 		list<
 			Z9_MEMBER(LockDevActionResp, 2, requestId, int16_t),
-			Z9_MEMBER(LockDevActionResp, 2, errorCode, int16_t),
+			Z9_MEMBER(LockDevActionResp, 2, errorCode, int16_t)
 		>
 	>,
 
@@ -703,17 +695,11 @@ using Z9_TYPES = list<
 			Z9_MEMBER(LockCredAuthorization, 8, mobileId, uint64_t),
 			Z9_MEMBER(LockCredAuthorization, 8, lockId, uint64_t),
 			Z9_MEMBER(LockCredAuthorization, 77, cred, LockCred),
-            // XXX could use an `uint32_t` instead of `std::array<uint8_t, 4>` depending on how value is used
-            // XXX integers are always transfered in network order
-            Z9_MEMBER(LockCredAuthorization, 61, schedUnids, variable<15, uint8_t, std::array<uint8_t, 4>),
-			//Z9_MEMBER(LockCredAuthorization, 1, numSchedUnids, uint8_t),
-			// TODO: 0 to 15 elements (0 to 60 bytes) | `schedUnids` | uint32_t   | 
-            Z9_MEMBER(LockCredAuthorization, 17, sharedSecret, variable<16>)
-			//Z9_MEMBER(LockCredAuthorization, 1, numSharedSecretBytes, int8_t)
+			Z9_MEMBER(LockCredAuthorization, 1, numSchedUnids, uint8_t)
+			// TODO: 0 to 15 elements (0 to 60 bytes) | `schedUnids` | uint32_t   | ,
+			Z9_MEMBER(LockCredAuthorization, 1, numSharedSecretBytes, int8_t)
 			// TODO: 0 to 16 elements (0 to 16 bytes) | `sharedSecretBytes` | uint8_t    | 
 		>
-        // XXX as a note, I would like to keep "base" type to under 128 bytes. Since the schedUNIDS push it
-        // XXX well over, could possibly want to move schedUNIDS to variable data folling fixed
 	>,
 
 	list<LockAccessReq, Z9_STRING("LockAccessReq"),
@@ -733,16 +719,14 @@ using Z9_TYPES = list<
 
 	list<LockPublicKeyExchange, Z9_STRING("LockPublicKeyExchange"),
 		list<
-            Z9_MEMBER(publicKey, 66, publicKey, variable<65>)
-			//Z9_MEMBER(LockPublicKeyExchange, 1, numPublicKeyBytes, int8_t),
+			Z9_MEMBER(LockPublicKeyExchange, 1, numPublicKeyBytes, int8_t)
 			// TODO: 0 to 65 elements (0 to 65 bytes) | `publicKeyBytes` | uint8_t    | 
 		>
 	>,
 
 	list<LockMobileBleChallengeNonce, Z9_STRING("LockMobileBleChallengeNonce"),
 		list<
-            Z9_MEMBER(LockMobileBleChallengeNonce, 17, nonce, variable<16>)
-			//Z9_MEMBER(LockMobileBleChallengeNonce, 1, numNonceBytes, int8_t)
+			Z9_MEMBER(LockMobileBleChallengeNonce, 1, numNonceBytes, int8_t)
 			// TODO: 0 to 16 elements (0 to 16 bytes) | `nonceBytes` | uint8_t    | 
 		>
 	>,
@@ -775,5 +759,4 @@ using Z9_TYPES = list<
 			// TODO: 1 to 1243 bytes | `content`  | LockPacketContent | discriminator-based structure
 		>
 	>
->;
 
