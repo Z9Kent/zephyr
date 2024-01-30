@@ -5,10 +5,11 @@
 #include "ProtocolMetadata.h"
 #include "Z9LockIOProtocol_Current.h"
 
-namespace z9::drivers::z9lockio::protocol
+namespace z9::protocol::z9lockio
 {
 
 using meta::list;
+using meta::int_;
 
 using Z9_TYPES = list<
 	list<LockDate, Z9_STRING("LockDate"),
@@ -691,15 +692,9 @@ using Z9_TYPES = list<
 
 	list<LockOpaqueContent, Z9_STRING("LockOpaqueContent"),
 		list<
-			Z9_MEMBER(LockOpaqueContent, 1025, opaqueBytes, variableArray<1023, int16_t, uint8_t>)
-		>
-	>,
-
-	list<LockPacket, Z9_STRING("LockPacket"),
-		list<
-			Z9_MEMBER(LockPacket, 2, headerBytes, int16_t),
-			Z9_MEMBER(LockPacket, 2, bytecount, int16_t)
-			// TODO: 1 to 1243 bytes | `content`  | LockPacketContent | discriminator-based structure
+			Z9_MEMBER(LockOpaqueContent, 2, count),
+			Z9_MEMBER(LockOpaqueContent, 12, iv),
+			Z9_MEMBER(LockOpaqueContent, 16, tag)
 		>
 	>
 >;

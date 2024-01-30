@@ -3,11 +3,11 @@
 
 #pragma once
 
-#ifndef NO_Z9LOCKIO
-
 #include <stdint.h>
+#include "variableArray.h"
 
-namespace z9 { namespace drivers { namespace z9lockio { namespace protocol {
+namespace z9
+{
 
 /**
  * Enum: {@link LockCredTechnology.h}.
@@ -601,7 +601,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockEvtContent_None : public LockEvtContent
+class LockEvtContent_None
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 1;
@@ -617,7 +617,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockEvtContent_BatteryLevel : public LockEvtContent
+class LockEvtContent_BatteryLevel
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 3;
@@ -634,7 +634,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockEvtContent_CredUnid : public LockEvtContent
+class LockEvtContent_CredUnid
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 6;
@@ -652,7 +652,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockEvtContent_SchedOid : public LockEvtContent
+class LockEvtContent_SchedOid
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 2;
@@ -981,7 +981,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockIdentification : public LockPacketContent
+class LockIdentification 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 17;
@@ -1006,7 +1006,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockIdentificationResult : public LockPacketContent
+class LockIdentificationResult 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 3;
@@ -1023,7 +1023,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockDbChange_Config : public LockPacketContent
+class LockDbChange_Config 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 147;
@@ -1042,7 +1042,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockDbChangeResp : public LockPacketContent
+class LockDbChangeResp 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 11;
@@ -1060,7 +1060,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockEvtControl : public LockPacketContent
+class LockEvtControl 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 19;
@@ -1079,7 +1079,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockEvtBatch : public LockPacketContent
+class LockEvtBatch 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 675;
@@ -1098,7 +1098,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockDevStateRecordControl : public LockPacketContent
+class LockDevStateRecordControl 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 1;
@@ -1114,7 +1114,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockDevStateRecord : public LockPacketContent
+class LockDevStateRecord 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 13;
@@ -1149,7 +1149,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockGetTimeReq : public LockPacketContent
+class LockGetTimeReq 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 1;
@@ -1165,7 +1165,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockGetTimeResp : public LockPacketContent
+class LockGetTimeResp 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 21;
@@ -1182,7 +1182,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockSetTimeReq : public LockPacketContent
+class LockSetTimeReq 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 21;
@@ -1199,7 +1199,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockSetTimeResp : public LockPacketContent
+class LockSetTimeResp 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 3;
@@ -1216,7 +1216,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockPullFileChunkReq : public LockPacketContent
+class LockPullFileChunkReq 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 15;
@@ -1237,7 +1237,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockPullFileChunkResp : public LockPacketContent
+class LockPullFileChunkResp 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 808;
@@ -1258,7 +1258,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockPushFileChunkReq : public LockPacketContent
+class LockPushFileChunkReq 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 816;
@@ -1281,7 +1281,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockPushFileChunkResp : public LockPacketContent
+class LockPushFileChunkResp 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 5;
@@ -1299,7 +1299,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockUpgradeReq : public LockPacketContent
+class LockUpgradeReq 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 6;
@@ -1318,7 +1318,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockUpgradeResp : public LockPacketContent
+class LockUpgradeResp 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 5;
@@ -1336,7 +1336,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockDbQuery : public LockPacketContent
+class LockDbQuery 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 14;
@@ -1359,7 +1359,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockDbQueryResp_Config : public LockPacketContent
+class LockDbQueryResp_Config 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 143;
@@ -1379,7 +1379,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockHostGrantReq : public LockPacketContent
+class LockHostGrantReq 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 83;
@@ -1400,7 +1400,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockHostGrantResp : public LockPacketContent
+class LockHostGrantResp 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 83;
@@ -1420,7 +1420,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockDevActionReq : public LockPacketContent
+class LockDevActionReq 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 7;
@@ -1440,7 +1440,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockDevActionResp : public LockPacketContent
+class LockDevActionResp 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 5;
@@ -1458,7 +1458,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockPolicyAssertionReq : public LockPacketContent
+class LockPolicyAssertionReq 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 13;
@@ -1479,7 +1479,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockPolicyAssertionResp : public LockPacketContent
+class LockPolicyAssertionResp 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 5;
@@ -1497,7 +1497,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockConnectionTermination : public LockPacketContent
+class LockConnectionTermination 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 1;
@@ -1513,7 +1513,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockDbChange_Hol : public LockPacketContent
+class LockDbChange_Hol 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 426;
@@ -1532,7 +1532,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockDbChange_Sched : public LockPacketContent
+class LockDbChange_Sched 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 865;
@@ -1551,7 +1551,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockDbChange_SchedPolicy : public LockPacketContent
+class LockDbChange_SchedPolicy 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 482;
@@ -1570,7 +1570,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockDbChange_Cred : public LockPacketContent
+class LockDbChange_Cred 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 1243;
@@ -1590,7 +1590,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockDbQueryResp_Hol : public LockPacketContent
+class LockDbQueryResp_Hol 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 838;
@@ -1610,7 +1610,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockDbQueryResp_Sched : public LockPacketContent
+class LockDbQueryResp_Sched 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 861;
@@ -1630,7 +1630,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockDbQueryResp_SchedPolicy : public LockPacketContent
+class LockDbQueryResp_SchedPolicy 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 478;
@@ -1650,7 +1650,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockDbQueryResp_Cred : public LockPacketContent
+class LockDbQueryResp_Cred 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 1238;
@@ -1670,7 +1670,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockCredAuthorization : public LockPacketContent
+class LockCredAuthorization 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 172;
@@ -1693,7 +1693,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockAccessReq : public LockPacketContent
+class LockAccessReq 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 11;
@@ -1711,7 +1711,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockAccessResp : public LockPacketContent
+class LockAccessResp 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 6;
@@ -1730,7 +1730,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockPublicKeyExchange : public LockPacketContent
+class LockPublicKeyExchange 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 67;
@@ -1748,7 +1748,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockMobileBleChallengeNonce : public LockPacketContent
+class LockMobileBleChallengeNonce 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 18;
@@ -1766,7 +1766,7 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockBundleHeader : public LockPacketContent
+class LockBundleHeader 
 {
 public:
 	static const int MAX_SERIALIZED_LEN = 37;
@@ -1791,14 +1791,14 @@ public:
  *
  * @author Z9 Security (code generator) 
  */
-class LockOpaqueContent : public LockPacketContent
+class LockOpaqueContent 
 {
 public:
-	static const int MAX_SERIALIZED_LEN = 1026;
+	static const int MAX_SERIALIZED_LEN = 30;
 	static const int8_t DISCRIMINATOR = 42;
-	// incorporated into subsequent variableArray: int16_t numOpaqueBytes;
-	variableArray<1023, int16_t, uint8_t> opaqueBytes;
-
+	uint16_t count;
+	uint8_t iv[12];
+	uint8_t tag[16];
 };
 
 
@@ -1863,5 +1863,4 @@ public:
 
 };
 
-}}}}
-#endif // #ifndef NO_Z9LOCKIO
+}
