@@ -1,6 +1,3 @@
-#ifndef KAS_STRING_H
-#define KAS_STRING_H
-
 // Support for using string literals as types
 //
 // String literals can not be directly used as template arguments because
@@ -18,6 +15,8 @@
 // Strings are limited to 16 characters, excluding the NULL.
 //
 // Extend limit to 32 characters to support ARM EABI names
+
+#pragma once
 
 #include <utility>
 #include <array>
@@ -40,8 +39,7 @@ public:
 
     constexpr kas_string() {}
 
-    // don't include terminating null character in size
-    // NB: kas_string<nullptr>::size returns zero
+    // length, excluding terminating null character 
     static constexpr auto size = sizeof...(Cs);
 
 private:
@@ -116,7 +114,7 @@ using str_cat = meta::_t<detail::str_cat_impl<Strs...>>;
 // Define string literal conversion function
 //
 
-#define KAS_STRING_MAX_STR  32
+#define KAS_STRING_MAX_STR  64
 #define KAS_STRING_GET_C(s)                 \
 	::kas::string::detail::getc_n((s), 0),  \
 	::kas::string::detail::getc_n((s), 1),  \
@@ -149,7 +147,39 @@ using str_cat = meta::_t<detail::str_cat_impl<Strs...>>;
 	::kas::string::detail::getc_n((s), 28), \
 	::kas::string::detail::getc_n((s), 29), \
 	::kas::string::detail::getc_n((s), 30), \
-	::kas::string::detail::getc_n((s), 31)
+	::kas::string::detail::getc_n((s), 31), \
+	::kas::string::detail::getc_n((s), 32), \
+	::kas::string::detail::getc_n((s), 33), \
+	::kas::string::detail::getc_n((s), 34), \
+	::kas::string::detail::getc_n((s), 35), \
+	::kas::string::detail::getc_n((s), 36), \
+	::kas::string::detail::getc_n((s), 37), \
+	::kas::string::detail::getc_n((s), 38), \
+	::kas::string::detail::getc_n((s), 39), \
+	::kas::string::detail::getc_n((s), 40), \
+	::kas::string::detail::getc_n((s), 41), \
+	::kas::string::detail::getc_n((s), 42), \
+	::kas::string::detail::getc_n((s), 43), \
+	::kas::string::detail::getc_n((s), 44), \
+	::kas::string::detail::getc_n((s), 45), \
+	::kas::string::detail::getc_n((s), 46), \
+	::kas::string::detail::getc_n((s), 47), \
+	::kas::string::detail::getc_n((s), 48), \
+	::kas::string::detail::getc_n((s), 49), \
+	::kas::string::detail::getc_n((s), 50), \
+	::kas::string::detail::getc_n((s), 51), \
+	::kas::string::detail::getc_n((s), 52), \
+	::kas::string::detail::getc_n((s), 53), \
+	::kas::string::detail::getc_n((s), 54), \
+	::kas::string::detail::getc_n((s), 55), \
+	::kas::string::detail::getc_n((s), 56), \
+	::kas::string::detail::getc_n((s), 57), \
+	::kas::string::detail::getc_n((s), 58), \
+	::kas::string::detail::getc_n((s), 59), \
+	::kas::string::detail::getc_n((s), 60), \
+	::kas::string::detail::getc_n((s), 61), \
+	::kas::string::detail::getc_n((s), 62), \
+ 	::kas::string::detail::getc_n((s), 63)
 
 #define KAS_STRING(s) ::kas::string::detail::make_string<         \
                   ::kas::string::detail::get_size((s))            \
@@ -201,5 +231,3 @@ namespace detail
 
 }
 }
-
-#endif

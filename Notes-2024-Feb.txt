@@ -1,0 +1,39 @@
+Steps from single board / dongle demo
+2024-Feb-07
+
+1. Move from Nordic Connect to zephyr
+
+2. Move source out of single directory to shared facility
+
+3. Implement zero-config message passing architecure
+
+4. Finish c++ TMP parsing:
+    - zero-member structures
+    - variable array support
+    - `invoke` with parsed type
+
+5. Z9IO slave support:
+    - use meta faciity
+    - use zero-config message passing
+
+6. port to SAML22 hardware:
+    - Board definition (x2)
+    - SOC definition
+    - internal flash
+    - Crypto
+
+7. Crypto:
+    - crypto in place support
+    - crypto on SAML22 (maybe tinycrypto? : NO-GSM)
+
+8. MBUF changes:
+    - add chaining
+    - use Zephyr SLIST
+    - support pointer + count for "walking" (crypto I/O)
+    - support pointer + count for "reading" (execute partial? or loop) (chain or error)
+    - support pointer + count for "writing" (execute partial? or loop) (extend or error)
+
+9. DFU
+    - Update Controller from Mobile (or Reader)
+    - Reader: Trusted Firmware Update
+

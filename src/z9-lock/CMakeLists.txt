@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.20.0)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+#set(ZEPHRY_MODULES modules/meta)
+
+project(z9-lock)
+include_directories(SYSTEM ../modules/meta/include)
+target_sources(app PRIVATE src/main.cc src/z9lockio_ble.cc)
+target_sources(app PRIVATE src/Eros_protocol.cc)
+target_sources(app PRIVATE src/Z9Crypto.cc)
+target_sources(app PRIVATE src/EventDb.cc)
+target_sources(app PRIVATE src/dk_buttons_and_leds.c)

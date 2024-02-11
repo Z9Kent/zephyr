@@ -1,0 +1,92 @@
+
+Changes to protool document:
+
+For structures:
+
+1. Remove bitfields
+2. Remove `base` member.
+3. Add `static constexpr auto discriminator = DISCRIMINATOR` as appropriate
+4. Optional: add ` : uint8_t ` to enums to reduce size
+
+FYI:
+
+template <typename...Ts>
+struct list
+{
+    using type = list;
+    static constexpr auto size = sizeof...(Ts>);
+};
+
+
+
+
+Encode types:
+
+#include Z9_Serialize.h
+
+namespace z9{}
+namespace z9::Z9LockIO
+{
+using meta::list;
+using meta::int_;
+using Z9_STRING = kas::KAS_STRING;
+
+// NB: can retreive `m_type` from structure
+#define Z9_MEMBER(s_type, wire_size, name, m_type) \
+    list<int_<wire_size>,                   \
+         int_<offsetof(s_type, name)>,      \
+         int_<sizeof(m_type)>,              \
+         m_type,                            \
+         Z9_STRING(#name)>
+
+
+using Z9_TYPES = list<
+    list<LockDbChange_Config, Z9_STRING("LockDbChange_Config"),
+        list<
+            // name member types
+            list<
+                int_<8>,
+                int_<offsetof(LockDbChange_Config, requestId)>,
+                int_<sizeof(uint64_t)>,
+                uint64_t,
+                Z9_STRING("requestId"),
+                >,
+            list<
+                int_<1>,
+                int_<offsetof(LockDbChange_Config, update)>,
+                int_<sizeof(std::declval<LockDbChange_Config>().update)>,
+                decltype(std::declval<LockDbChange_Config>().update),
+                Z9_STRING("update"),
+                >,
+            Z9_MEMBER(LockDbChange_Config, 1, updateConfigPresent, uint8_t),
+            >,
+        // optional final type (incorrect example)
+        Z9_MEMBER(LockDbChange_Config, 32, evt, LockEvt)
+    >;
+
+// enum expands to arrays:
+// static constexpr auto names[] = {
+//      [name ## _ ## value] = #name,
+//      ... for each value ...
+//  };
+
+#define Z9_ENUM(NAME, VALUE...)  list<NAME, Z9_STRING(#VALUE),...>
+
+using Z9_ENUMERATIONS = list<
+    Z9_ENUM(LockIdentificationType,
+            NONE, LOCK, HUB_CONTROLLER, MOBILE, AUTHORITATIVE_SOURCE),
+    ...
+    >;
+
+
+// basically the types in the union
+using Z9LockIO_Protocol = list<
+    LockPacketContent,          // type that holds discriminator
+    LockIdentification,         // list types in the union, in no particular order
+    LockIdentificationResult,   // can retrieve discriminator from type
+    LockDbChange_Config,
+    ....
+    >;
+    
+}   // close namespace
+

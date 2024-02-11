@@ -1,0 +1,6 @@
+# directories managed by west
+bootloader
+modules
+tools
+zephyr
+build*

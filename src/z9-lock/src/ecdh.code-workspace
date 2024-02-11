@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "../../ecdh"
+		},
+		{
+			"name": "nvs",
+			"path": "../../nvs"
+		},
+		{
+			"name": "z9-ble",
+			"path": ".."
+		}
+	],
+	"settings": {}
+}

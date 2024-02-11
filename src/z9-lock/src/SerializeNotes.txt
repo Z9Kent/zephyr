@@ -1,0 +1,21 @@
+Notes for serialization object
+
+Deserialize structure:
+
+1. Read input (increasing order only for mbufs) as character sequence
+
+2. Assemble <N> characters into value. Value types are:
+    - integral fixed length (signed/unsigned): network order
+    - enumeration type, normally 1 byte
+    - character string, fixed length, (ie raw bytes)
+    - structure type (structure composed of previous types)
+    - array of structures (max N), last element
+
+3. Placed in Raw Memory in structure
+    - element info: offsetof, sizeof, name
+
+4. For enumerations: accept all values into to deserialize type for introspection
+
+5. When Deserializing with DISCRIMINATOR, return `type`
+
+o
