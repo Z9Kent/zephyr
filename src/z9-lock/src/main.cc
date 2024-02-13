@@ -21,32 +21,45 @@
 
 
 #include <zephyr/settings/settings.h>
-#include "dk_buttons_and_leds.h"
+#include "button.h"
 #include "z9lockio_ble.h"
 #include "Eros_protocol.h"
-#include <hal/nrf_ficr.h>
-#include <nrf.h>
 #include <zephyr/drivers/hwinfo.h>
 #include <cstring>
 
 LOG_MODULE_REGISTER(z9_ble, LOG_LEVEL_INF);
-
-#define PRIV_STATUS_LED DK_LED2
-#define RUN_STATUS_LED DK_LED2
 #define RUN_LED_BLINK_INTERVAL 1000
 
-#define SYNC_LED        DK_LED3
-#define NO_ACCESS_LED   DK_LED4
+#define GREEN_LED_NODE  DT_ALIAS(led0)
+#define RED_LED_NODE    DT_ALIAS(led1)
+static const gpio_dt_spec green_led = GPIO_DT_SPEC_GET(GREEN_LED_NODE, gpios);
+static const gpio_dt_spec red_led   = GPIO_DT_SPEC_GET(RED_LED_NODE  , gpios);
 
-#define RED_BUTTON      DK_BTN1_MSK
-#define ID64_BUTTON     DK_BTN2_MSK
-#define SYNC_BUTTON     DK_BTN3_MSK
-#define ACCESS_BUTTON   DK_BTN4_MSK
+static void set_green_led(bool led)
+{
+        gpio_pin_set_dt(&green_led, led);
+}
+static void set_red_led(bool led)
+{
+        gpio_pin_set_dt(&red_led, led);
+}
+static int init_leds()
+{
+        int err;
+        err = gpio_is_ready_dt(&green_led);
+        if (err < 0) return err;
+     	err = gpio_pin_configure_dt(&green_led, GPIO_OUTPUT_ACTIVE);
+        if (err < 0) return err;
+        err = gpio_is_ready_dt(&red_led);
+        if (err < 0) return err;
+     	err = gpio_pin_configure_dt(&red_led, GPIO_OUTPUT_ACTIVE);
+        if (err < 0) return err;
+        set_green_led(0);
+        set_red_led(0);
+        return 0;
+}
 
 bool privacy_state;
-bool id64_button_state;
-bool sync_button_state;
-bool access_button_state;
         
 static void pairing_expired(struct k_work *work)
 {
@@ -64,90 +77,41 @@ static void perform_reset(struct k_work *work)
 K_WORK_DELAYABLE_DEFINE(pairing_timer, pairing_expired);
 K_WORK_DELAYABLE_DEFINE(reset_timer, perform_reset);
 
-static void button_changed(uint32_t button_state, uint32_t has_changed)
+static void button_changed(button_evt evt)
 {
+        static bool was_pressed = false;
         auto& lock = z9lock_status;
-        if (has_changed & RED_BUTTON)
-        {
-                bool is_pressed = button_state & RED_BUTTON;
-                printk("red: is_pressed: %d\n", is_pressed);
-
-                if (is_pressed)
-                        k_work_schedule(&reset_timer, K_SECONDS(10));
-                else 
-                {
-                        k_work_cancel_delayable(&reset_timer);
-
-                        // if in paired, then it's the priv button
-                        if (lock.mode == LockStatusMode::NORMAL)
-                        {
-                                privacy_state ^= 1; //bool(button_state & RED_BUTTON);
-                                dk_set_led(PRIV_STATUS_LED, privacy_state);
-                        }
-                        else
-                        {
-                                k_work_schedule(&pairing_timer, K_SECONDS(30));
-                                lock.mode = LockStatusMode::PAIRING;
-                                lock.publish();
-                        }
-                }
-
-                #if 0
-                red_button_state ^= (button_state & RED_BUTTON);
-                if (button_state & RED_BUTTON)
-                        ++lock_mode;
-                if (lock_mode >= 3)
-                        lock_mode = 0;
-
-                if (lock_mode == 1)
-                        k_work_schedule(&end_pend, K_SECONDS(30));
-
-
-                lock.mode   = static_cast<LockStatusMode>(lock_mode);
-                lock.publish();
-                #endif
-        }
-        if (has_changed & ID64_BUTTON)
-        {
-                id64_button_state ^= (button_state & ID64_BUTTON);
-               
-                // clear MSBs
-                z9lock_status.lockID &= 0xffff'ffff'ffff'ffff;
-                // set according to flag
-                z9lock_status.lockID |= static_cast<uint64_t>(id64_button_state)<< 32;
-                z9lock_status.publish();
-        }
-        if (has_changed & SYNC_BUTTON)
-        {
-                sync_button_state ^= bool(button_state & SYNC_BUTTON);
-                dk_set_led(SYNC_LED, sync_button_state);
                 
-                z9lock_status.sync_req = sync_button_state;
-                z9lock_status.publish();
+        bool is_pressed = evt == BUTTON_EVT_PRESSED;
+        printk("red: is_pressed: %d\n", is_pressed);
 
-        }
-        if (has_changed & ACCESS_BUTTON)
+        if (is_pressed)
+                k_work_schedule(&reset_timer, K_SECONDS(10));
+        else 
         {
-                access_button_state ^= bool(button_state & ACCESS_BUTTON);
-                dk_set_led(NO_ACCESS_LED, access_button_state);
+                k_work_cancel_delayable(&reset_timer);
+
+                // if in paired, then it's the priv button
+                if (lock.mode == LockStatusMode::NORMAL)
+                {
+                        privacy_state ^= 1; //bool(button_state & RED_BUTTON);
+                        //dk_set_led(PRIV_STATUS_LED, privacy_state);
+                        set_red_led(privacy_state);
+                }
+                else
+                {
+                        k_work_schedule(&pairing_timer, K_SECONDS(30));
+                        lock.mode = LockStatusMode::PAIRING;
+                        lock.publish();
+                }
         }
 
+        
         auto lock_mode = static_cast<uint8_t>(lock.mode);
-        printk("%s: MODE=%d, PRIV=%d, ID=%d, SYNC=%d, ACCESS=%d\n", __func__, lock_mode, privacy_state, id64_button_state, sync_button_state, access_button_state);
+        printk("%s: MODE=%d, PRIV=%d\n", __func__, lock_mode, privacy_state);
 
 }
 
-static int init_button(void)
-{
-        int err;
-
-        err = dk_buttons_init(button_changed);
-        if (err) {
-                printk("Cannot init buttons (err: %d)\n", err);
-        }
-
-        return err;
-}
 
 #include <psa/crypto.h>
 #include <psa/crypto_extra.h>
@@ -207,13 +171,13 @@ int main()
                                                 , uint32_t(serial_number>>32)
                                                 , uint32_t(serial_number));
 
-         err = dk_leds_init();
+        err = init_leds();
         if (err) {
                 printk("LEDs init failed (err %d)\n", err);
                 return err;
         }
 
-        err = init_button();
+        err = button_init(button_changed);
         if (err) {
                 printk("Button init failed (err %d)\n", err);
                 return err;
@@ -234,14 +198,7 @@ int main()
         // update advertising
         auto& lock = z9lock_status;
         lock.lockID = serial_number;
-        //lock.lockID = 12345;
-        //lock.lockID = 0x11223344;
         set_lock_mode();                // examine nvm
-        //lock.mode   = LockStatusMode::PAIRING;
-        //lock.mode   = get_lock_mode();
-        //lock.mode   = LockStatusMode::NORMAL;
-        //lock.battery_low = true;
-        //lock.publish();
 
         // start the Z9 BLE stack
         z9lock_ble_init({});
@@ -260,15 +217,14 @@ int main()
                                 // FALLSTHRU
                         case LockStatusMode::CONSTRUCTION:
                                 led = blink_status & 1;
-                                dk_set_led(RUN_STATUS_LED, led);
+                                set_green_led(led);
                                 break;
                         default:
-                                dk_set_led(RUN_STATUS_LED, 0);
+                                set_green_led(0);
                                 return 0;
                                 led = blink_status & 2;
                                 break;
                 }
-
 
                 k_sleep(K_MSEC(RUN_LED_BLINK_INTERVAL/2));
         }

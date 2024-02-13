@@ -1,0 +1,34 @@
+// To get started, press Ctrl+Space (or Option+Esc) to bring up the completion menu and view the available nodes.
+
+// You can also use the buttons in the sidebar to perform actions on nodes.
+// Actions currently available include:
+
+// * Enabling / disabling the node
+// * Adding the bus to a bus
+// * Removing the node
+// * Connecting ADC channels
+
+// For more help, browse the DeviceTree documentation at https://docs.zephyrproject.org/latest/guides/dts/index.html
+// You can also visit the nRF DeviceTree extension documentation at https://nrfconnect.github.io/vscode-nrf-connect/devicetree/nrfdevicetree.html
+/delete-node/ &slot1_partition;
+&flash0 {
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		event_normal_partition: partition@82000 {
+			label = "event-normal";
+			reg = <0x00082000 0x00010000>;
+		};
+		event_priority_partition: partition@92000 {
+			label = "event-priority";
+			reg = <0x00092000 0x00010000>;
+		};
+		credentials: partition@a2000 {
+			label = "credentials";
+			reg = <0x000a2000 0x00056000>;
+		};
+    };
+};

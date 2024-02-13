@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "src/z9-lock"
+		},
+		{
+			"path": "src/z9-zephyr"
+		}
+	],
+	"settings": {
+		"nrf-connect.toolchain.path": "${nrf-connect.zephyrsdk:0.16.4}",
+		"files.associations": {
+			"crypto.h": "c"
+		}
+	}
+}
