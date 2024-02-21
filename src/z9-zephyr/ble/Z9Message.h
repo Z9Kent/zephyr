@@ -2,7 +2,7 @@
 #include <zephyr/sys/printk.h>
 
 #include <meta/meta.hpp>
-#include <cstdint>
+#include <stdint.h>
 
 #pragma once
 
@@ -48,6 +48,60 @@ struct LockMessageBase : MessageObject_ABC
     }
 };
 
+// utility functions to help recast message from base type -> derived type
+namespace detail
+{
+    using namespace meta;
+
+    template <typename OBJ, typename MSG, typename = void>
+    struct exec_msg : std::false_type
+    {
+        void invoke(...) {}
+    };
+
+    template <typename OBJ, typename MSG>
+    struct exec_msg<OBJ, MSG 
+                       , std::void_t<std::invoke_result_t<OBJ, MSG *>>
+                       > : std::true_type
+    {
+        void invoke(OBJ& obj, MessageObject_ABC *msg) const
+        { 
+            return obj(static_cast<MSG *>(msg));
+        }
+    };
+                    
+
+    template <typename T, std::size_t N, std::size_t...Is>
+    void constexpr do_exec(T& obj, MessageObject_ABC *msg, std::index_sequence<N, Is...>)
+    {
+        if (msg->index() == N)
+           exec_msg<T, at_c<ALL_LockMsg, N>>().invoke(obj, msg);
+        else if constexpr (sizeof...(Is))
+            do_exec(obj, msg, std::index_sequence<Is...>());
+    }
+
+    template <typename OBJ, typename MSG, typename...Ts>
+    static constexpr uint32_t do_registered(OBJ& obj, list<MSG, Ts...>)
+    {
+        uint32_t result = exec_msg<OBJ, MSG>::value;
+        if constexpr (sizeof...(Ts))
+            result |= do_registered(obj, list<Ts...>()) << 1;
+        return result;
+    }
+}
+
+template <typename T, typename NAME>
+void LockObjectBase<T, NAME>::exec(MessageObject_ABC *msg)
+{
+    detail::do_exec(derived(), msg, std::make_index_sequence<NUM_LockMsg>());
+}
+
+template <typename T, typename NAME>
+uint16_t const LockObjectBase<T, NAME>::registered() const
+{
+    return detail::do_registered(const_cast<T&>(static_cast<const T&>(derived())), ALL_LockMsg());
+}
+
 struct LockObject_ABC 
 {
     using ExecFn_t = void (*)(LockObject_ABC&, MessageObject_ABC *);
@@ -86,38 +140,3 @@ private:
         { static_cast<LockObjectBase&>(ref).exec(msg); }
 
 };
-
-// XXX not required to list `Objects`, just `Messages`
-using ALL_LockObj = meta::list<
-     struct LockObj_Exec
-   , struct LockObj_Latch
-   , struct LockObj_Privacy
-   >;
-
-
-// sample message
-struct LockMsg_IPB : LockMessageBase<LockMsg_IPB, KAS_STRING("IPB")>
-{
-    bool active;
-};
-
-
-struct LockMsg_LATCH : LockMessageBase<LockMsg_LATCH, KAS_STRING("LATCH")> {};
-
-
-struct LockObj_Privacy : LockObjectBase<LockObj_Privacy, KAS_STRING("PRIVACY")>
-{
-    void operator()(LockMsg_IPB *msg)
-    {
-        printk("%s: object received msg %s\n", name(), msg->name());
-
-        active ^= true;
-        // send LockMsg_Display(priv-on or something);
-    }
-
-    bool active;
-};
-
-extern LockMsg_IPB ipb;
-extern LockMsg_LATCH latch;
-extern LockObj_Privacy priv;

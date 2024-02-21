@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Z9LockIOProtocol_Current.h"
+//#include "Z9LockIOProtocol_Current.h"
 
 #include <zephyr/device.h>
 #include <zephyr/drivers/flash.h>
@@ -20,6 +20,8 @@
 #include <time.h>
 
 // macro to create EVENT
+// Events codes in Z9LockIO protocol definition
+#include "Z9LockIOProtocol_Current.h"
 
 // TODO: add args to set flags other than true
 #define  EVT(code, MODS...)  LockEvt{ .evtCode=code }
@@ -30,6 +32,7 @@
 #define FS_NORMAL       event_normal
 #define FS_PRIORITY     event_priority
 
+namespace z9{}
 using namespace z9;
 
 // Declare Data-type stored in the Event Circular buffer

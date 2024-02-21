@@ -1,5 +1,10 @@
-#include <zephyr/kernel.h>
+// Z9Message_FSM.h C++
+
+#pragma once
+
 #include "Z9Message.h"
+
+using namespace kas;
 
 // XXX not required to list `Objects`, just `Messages`
 using ALL_LockObj = meta::list<
@@ -32,19 +37,6 @@ struct LockObj_Privacy : LockObjectBase<LockObj_Privacy, KAS_STRING("PRIVACY")>
     bool active;
 };
 
-LockMsg_IPB ipb;
-LockMsg_LATCH latch;
-LockObj_Privacy priv;
-
-int main(void)
-{
-        printk("Z9Exec::main()\n");
-        printk("priv:registered() -> %x\n", priv.registered());
-        printk("ipb:index() -> %d\n", ipb.index());
-        printk("latch:index() -> %d\n", latch.index());
-        priv.exec(&ipb);
-        priv.exec(&latch);
-        printk("direct exec: ");
-        priv(&ipb);
-        return 0;
-}
+extern LockMsg_IPB ipb;
+extern LockMsg_LATCH latch;
+extern LockObj_Privacy priv;

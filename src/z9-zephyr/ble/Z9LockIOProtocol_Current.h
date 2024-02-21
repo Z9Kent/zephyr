@@ -1738,7 +1738,6 @@ public:
 	static const int8_t DISCRIMINATOR = 41;
 	// incorporated into subsequent variableArray: int8_t numPublicKeyBytes;
 	variableArray<65, int8_t, uint8_t> publicKeyBytes;
-
 };
 
 

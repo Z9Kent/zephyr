@@ -1,31 +1,14 @@
 
+#include "button.h"
+#include "z9lockio_ble.h"
+#include "EventDb.h"
+
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
-#include <zephyr/types.h>
-#include <stddef.h>
-#include <string.h>
-#include <errno.h>
 #include <zephyr/sys/printk.h>
-#include <zephyr/sys/byteorder.h>
 #include <zephyr/drivers/gpio.h>
-#include <soc.h>
 
-#include <zephyr/bluetooth/bluetooth.h>
-#include <zephyr/bluetooth/gap.h>
-
-#include <zephyr/bluetooth/hci.h>
-#include <zephyr/bluetooth/conn.h>
-#include <zephyr/bluetooth/uuid.h>
-#include <zephyr/bluetooth/gatt.h>
-
-
-#include <zephyr/settings/settings.h>
-#include "button.h"
-#include "z9lockio_ble.h"
-#include "Eros_protocol.h"
-#include <zephyr/drivers/hwinfo.h>
-#include <cstring>
 
 LOG_MODULE_REGISTER(z9_ble, LOG_LEVEL_INF);
 #define RUN_LED_BLINK_INTERVAL 1000
@@ -59,8 +42,6 @@ static int init_leds()
         return 0;
 }
 
-bool privacy_state;
-        
 static void pairing_expired(struct k_work *work)
 {
         printk("%s: expired\n", __func__);
@@ -75,11 +56,11 @@ static void perform_reset(struct k_work *work)
 }
 
 K_WORK_DELAYABLE_DEFINE(pairing_timer, pairing_expired);
-K_WORK_DELAYABLE_DEFINE(reset_timer, perform_reset);
+K_WORK_DELAYABLE_DEFINE(reset_timer  , perform_reset);
 
+bool privacy_state;
 static void button_changed(button_evt evt)
 {
-        static bool was_pressed = false;
         auto& lock = z9lock_status;
                 
         bool is_pressed = evt == BUTTON_EVT_PRESSED;
@@ -95,7 +76,6 @@ static void button_changed(button_evt evt)
                 if (lock.mode == LockStatusMode::NORMAL)
                 {
                         privacy_state ^= 1; //bool(button_state & RED_BUTTON);
-                        //dk_set_led(PRIV_STATUS_LED, privacy_state);
                         set_red_led(privacy_state);
                 }
                 else
@@ -106,10 +86,8 @@ static void button_changed(button_evt evt)
                 }
         }
 
-        
         auto lock_mode = static_cast<uint8_t>(lock.mode);
         printk("%s: MODE=%d, PRIV=%d\n", __func__, lock_mode, privacy_state);
-
 }
 
 
@@ -157,20 +135,7 @@ int main()
                 return {};
         }
 #endif
-
-        // print serial number
-        uint64_t serial_number = 0;
-        uint8_t  temp_buffer[sizeof(serial_number)];
-        std::memset(temp_buffer, 0, sizeof(temp_buffer));
-        auto sn_len = hwinfo_get_device_id(temp_buffer, sizeof(temp_buffer));
-        std::memcpy(&serial_number, temp_buffer, sn_len);
-        printk("DeviceID = %" PRIu64 ", len=%d, [%" PRIx64 "], [%08" PRIx32 " %08" PRIx32 "]\n"
-                                                , (uint64_t)serial_number
-                                                , sn_len
-                                                , (uint64_t)serial_number
-                                                , uint32_t(serial_number>>32)
-                                                , uint32_t(serial_number));
-
+ 
         err = init_leds();
         if (err) {
                 printk("LEDs init failed (err %d)\n", err);
@@ -183,31 +148,19 @@ int main()
                 return err;
         }
         
-        err = bt_enable(NULL);
-        if (err) {
-                printk("Bluetooth init failed (err %d)\n", err);
-                return err;
-        }
-
-        printk("Bluetooth initialized\n");
-
-        if (IS_ENABLED(CONFIG_SETTINGS)) {
-                settings_load();
-        }
-        
-        // update advertising
-        auto& lock = z9lock_status;
-        lock.lockID = serial_number;
-        set_lock_mode();                // examine nvm
-
         // start the Z9 BLE stack
-        z9lock_ble_init({});
+        printk("Initializing Bluetooth\n");
+        z9lock_ble_init();
 
-        printk("Advertising successfully started\n");
+        // startup complete -- generate an event
+        LockEventDb::instance().save(EVT(LockEvtCode_STARTUP));
 
+        // if in construction or pairing mode, blink LED 
         uint8_t blink_status = 0;
+        for (;;)
+        {
+                auto&& lock = z9lock_status;
 
-        for (;;) {
                 auto led = false;
                 ++blink_status;
                 switch (lock.mode)
@@ -222,12 +175,10 @@ int main()
                         default:
                                 set_green_led(0);
                                 return 0;
-                                led = blink_status & 2;
-                                break;
                 }
 
                 k_sleep(K_MSEC(RUN_LED_BLINK_INTERVAL/2));
         }
         
-        return 0;       
+        // NOTREACHED
 }
