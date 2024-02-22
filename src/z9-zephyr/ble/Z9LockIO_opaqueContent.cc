@@ -21,7 +21,7 @@ void Z9LockIO_opaqueContent(KCB& kcb, uint8_t key)
 {
     psa_key_handle_t *key_p {};
     const char *keyName = "UNKNOWN KEY";
-    switch (sourceType)
+    switch (lastHeader.origin)
     {
         case LockIdentificationType_AUTHORITATIVE_SOURCE:
             key_p = &noc_key_handle;

@@ -457,7 +457,7 @@ void z9lockio_recv(KCB& kcb)
         if (kcb.read() != '9') return;
 
         auto len  = kcb.read() << 8;
-            len += kcb.read();;
+             len += kcb.read();;
 
         auto discriminator = kcb.read();
         len -= 5;       // remove Z9LockIO Header length from count

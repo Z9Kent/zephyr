@@ -473,11 +473,14 @@ z9_error_t kcb_seek(kcb_t *kcb, uint32_t loc)
 }
 
 // add data to end of block
-z9_error_t kcb_load(kcb_t *kcb, uint8_t *data, kcb_offset_t n)
+z9_error_t kcb_load(kcb_t *kcb, const void *data, kcb_offset_t n)
 {
     // dummy until bcopy version
-    while (n--) kcb_write(kcb, *data++);
-    return NULL;
+    if (n == 0) return NULL;
+
+    const uint8_t *p = data;
+    while (--n) kcb_write(kcb, *p++);
+    return kcb_write(kcb, *p);
 }
 
 // get pointer to raw data in current block

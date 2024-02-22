@@ -57,12 +57,12 @@ void Z9LockIO_credAuthorization(KCB& kcb, uint8_t encrypted)
             __func__, mobileID, lockID, sharedSecretLen);
     //z9lockio_gen_challenge(arg); 
 }
-#if 0
+
+
 static void z9lockio_gen_challenge(void *arg)
 {
-    static uint8_t buf[100];
-
-    auto kcb = z9lockio_create_bundle_header(0);
+#if 0
+    auto kcb = Z9LockIO_createBundleHeder(bool opaque = true, bool toIntermediate = false, uint8_t count = 1)
     LockMobileBleChallengeNonce::DISCRIMINATOR;
     sizeof(ble_challenge);
     std::memcpy(p, ble_challenge, sizeof(ble_challenge));
@@ -70,5 +70,5 @@ static void z9lockio_gen_challenge(void *arg)
     
     printk("%s: challenge length = %u\n", __func__, len);
     z9lockio_send_bundle(kcb, headersize, 2);
-}
 #endif
+}
