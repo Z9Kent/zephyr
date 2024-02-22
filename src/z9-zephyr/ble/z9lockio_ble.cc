@@ -19,135 +19,93 @@
 
 #include <zephyr/settings/settings.h>   // nvm interface
 #include "z9lockio_ble.h"
+#include "Z9Lock_status.h"
 #include "z9_ble_driver.h"
 #include "Eros_protocol.h"
 #include <zephyr/drivers/hwinfo.h>      // get serial #
 
 #define Z9LOCK_BUFFER_SIZE      Z9LOCK_MTU
-Z9lock_status z9lock_status;
 
-static z9_ble_callbacks cb;
-
-#define BT_UUID_SERVICE     BT_UUID_DECLARE_128(Z9LOCK_UUID_SERVICE)
-#define BT_UUID_CHAR_RX     BT_UUID_DECLARE_128(Z9LOCK_UUID_CHARACTERISTIC)
-
-#define SHORT_SERVICE       0x1101      // short service ("SerialPort")
-#define SHORT_CHAR          0x1102      // short service + 1
-
-#define USE_SHORT_SERVICE   0      // get around pc-ble-driver-py bug
-
-static uint64_t get_hw_serialNumber()
+static void ble_recv_trampoline(k_work *work);
+struct ble_recv_message
 {
-    // read serial number
-    uint64_t serial_number = 0;
-    uint8_t  temp_buffer[sizeof(serial_number)];
-    std::memset(temp_buffer, 0, sizeof(temp_buffer));
-    auto sn_len = hwinfo_get_device_id(temp_buffer, sizeof(temp_buffer));
-    std::memcpy(&serial_number, temp_buffer, sn_len);
-    printk("DeviceID = %" PRIu64 ", len=%d, [%" PRIx64 "], [%08" PRIx32 " %08" PRIx32 "]\n"
-                                            , (uint64_t)serial_number
-                                            , sn_len
-                                            , (uint64_t)serial_number
-                                            , uint32_t(serial_number>>32)
-                                            , uint32_t(serial_number));
-    return serial_number;
+    K_WORK_DEFINE(recv_work, ble_recv_trampoline);
+    bt_conn  *conn;
+    uint16_t buf_len;
+    uint8_t buf[420];
+};
+
+static constexpr auto BLE_RECV_QUEUE_SIZE = 20;
+static ble_recv_message ble_recv_queue[BLE_RECV_QUEUE_SIZE], *ble_queue_ptr = ble_recv_queue;
+
+static void *conn_conn;
+static send_cb_t send_fn;
+
+static void ble_recv(void *cb_arg, bt_conn *conn, const uint8_t *buf, uint16_t buf_len)
+{
+    // get next circular queue location
+    auto p = ble_queue_ptr++;
+    if (ble_queue_ptr - ble_recv_queue == BLE_RECV_QUEUE_SIZE)
+        ble_queue_ptr = ble_recv_queue;
+
+    // just overwrite if busy
+    // print message if overwriting
+    if (p->recv_work.flags & K_WORK_MASK)
+        printk("%s: overwriting previous message", __func__);
+
+    p->conn    = conn;
+    p->buf_len = buf_len;
+    std::memcpy(p->buf, buf, buf_len);
+    k_work_submit(&p->recv_work);
 }
 
-std::tuple<uint8_t const *, unsigned> Z9lock_status::encode() const
+static void ble_recv_trampoline(k_work *work)
 {
-    // this is the basic Base64 encoding (per Wikipedia)
-    // leave full algorithm in, but optimizer should reduce to 7 lookups + 1 pad
-    static constexpr uint8_t sEncodingTable[] = 
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz"
-        "0123456789+/";
-    static constexpr uint8_t sEncodePadding = '=';
-
-    // constants for WaveLynx BLE protocol
-    constexpr auto INBUF_LEN  = 5;      // per WaveLynx Lock BLE profile
-    constexpr auto OUTBUF_LEN = ((INBUF_LEN + 2)/3) * 4;
-    static uint8_t outbuf[OUTBUF_LEN];
+    auto self = CONTAINER_OF(work, ble_recv_message, recv_work);
     
-    // create the input buffer and populate from end -> beginning (ie. network order)
-    uint8_t inbuf[INBUF_LEN];
-    auto in_p = std::end(inbuf);
+    printk("%s: received %u bytes of data\n", __func__, self->buf_len);
+
     
-    // add 32 bits of "lock" (ie lower 32 bits in network order)
-    for (auto [n, v] = std::tuple(sizeof(uint32_t), lockID); n--; v >>= 8)
-        *--in_p = v;
 
-    // add one byte of "bitmask" as first byte
-    auto bitmask = static_cast<uint8_t>(mode);
-    if (sync_req)    bitmask |= 1 << 2;
-    if (battery_low) bitmask |= 1 << 3;
-    if (tamper)      bitmask |= 1 << 4;
-    *--in_p = bitmask;
-
-    // basic base64 algorithm (for 3 byte input blocks, generate 4 byte output blocks)
-    auto out_p  = std::begin(outbuf);   // not `for` loop variable: need for residual values
-    auto in_len = sizeof(inbuf);        // not `for` loop variable: need for residual values
-    for (; in_len >= 3; in_len -= 3, in_p += 3)
-    {
-        *out_p++ = sEncodingTable[in_p[0] >> 2];        // NB: `and` not needed
-        *out_p++ = sEncodingTable[0x3f & (in_p[0] << 4 | in_p[1] >> 4)];
-        *out_p++ = sEncodingTable[0x3f & (in_p[1] << 2 | in_p[2] >> 6)];
-        *out_p++ = sEncodingTable[0x3f & (in_p[2])];
-    }
-
-    // output data length must be multiple of 4: pad as required
-    if (in_len != 0)
-    {
-        *out_p++ = sEncodingTable[in_p[0] >> 2];        // NB: `and` not needed
-        if (in_len == 1)
-        {
-            *out_p++ = sEncodingTable[0x3f & (in_p[0] << 4)];
-            *out_p++ = sEncodePadding;
-        }
-        else
-        {
-            *out_p++ = sEncodingTable[0x3f & (in_p[0] << 4 | in_p[1] >> 4)];
-            *out_p++ = sEncodingTable[0x3f & (in_p[1] << 2)];
-        }
-        *out_p++ = sEncodePadding;
-    }
-
-    return { outbuf, OUTBUF_LEN };
+    auto p = self->buf;
+    auto n = self->buf_len;
+    printk("%s: data: ", __func__);
+    while(n--) printk("%02x", *p++);
+    printk("\n");
+    eros_ble_recv(self->conn, self->buf, self->buf_len);
 }
+
+static bool ble_accept(void *cb_arg, void *peer)
+{
+    // connection attempt from peer
+    printk("%s: connection request from peer\n", __func__);
+    return true;
+}
+
+static void ble_connected(void *cb_arg, send_cb_t fn, void *conn)
+{
+    printk("%s: connected. send fn = %p\n", __func__, fn);
+    send_fn = fn;
+    conn_conn = conn;
+}
+
+static z9_ble_callbacks cb
+{
+    .accept    = ble_accept,
+    .connected = ble_connected,
+    .recv_cb   = ble_recv,
+};
 
 void z9lock_ble_init()
 {
-    // read settings
-    if (IS_ENABLED(CONFIG_SETTINGS)) {
-            settings_load();
-    }
-        
     // init ble driver
-    int err = bt_enable(NULL);
-    if (err) {
-            printk("Bluetooth init failed (err %d)\n", err);
-            return;
-    }
-
-    // set callbacks
-
-    // configure advertising info
-    uint64_t serial_number = get_hw_serialNumber();
-    z9_ble_set_SN(&serial_number);     // additional advertising data
-
-    // get lock mode...
-
-    auto& lock  = z9lock_status;
-    lock.lockID = serial_number;
-    //lock.mode   = mode;
-
-    printk("%s; advertising lock %" PRIu64 "\n", __func__, lock.lockID);
-    lock.publish();
+    z9_ble_init(&cb, NULL);
 }
 
-// update BLE advertisement
-void Z9lock_status::publish() const
+void z9lock_ble_update_advertising(const Z9Lock_status &lock)
 {
-    auto&& [encoded, encoded_len] = encode();
-    printk("Encoded: %.8s, %u bytes\n", encoded, encoded_len);
-    z9_ble_set_name(encoded, encoded_len);
+    z9_ble_set_SN(&lock.lockID);
+    auto [name, len] = lock.encode();
+    z9_ble_set_name(name, len);
+    printk("%s; advertising lock %" PRIu64 "\n", __func__, lock.lockID);
 }

@@ -23,11 +23,30 @@ z9_error_t Z9Crypto_gcm_decrypt_KCB(psa_key_id_t key, KCB& kcb, uint8_t *prefix,
     auto tag = kcb.consumeHeadroom(16);     // TAG is next
     auto len = kcb.top().length();          // bytes to decrypt
 
-    // psa altorithm
+    psa_status_t status;
+
     psa_aead_operation_t operation = PSA_AEAD_OPERATION_INIT;
-    psa_aead_decrypt_setup(&operation, key, PSA_ALG_GCM);
-    psa_aead_set_lengths(&operation, 0, len);
-    psa_aead_set_nonce(&operation, iv, 12);
+    printk("%s: key = %d (%08x)\n", __func__, key, key);
+    //print_hex(__func__, "input", text, text_length);
+    //print_hex(__func__, "iv ", nonce, 12);
+    //print_hex(__func__, "tag", tag, 16);
+    //print_hex(__func__, "in ", text, text_length);
+
+    status = psa_aead_decrypt_setup(&operation, key, PSA_ALG_GCM);
+        if (status)
+        {
+            printk("%s: error: psa_aead_decrypt_setup: %d\n", __func__, status);
+        }
+    status = psa_aead_set_lengths(&operation, 0, len);
+        if (status)
+        {
+            printk("%s: error: psa_aead_set_lengths: %d\n", __func__, status);
+        }
+    status = psa_aead_set_nonce(&operation, iv, 12);
+        if (status)
+        {
+            printk("%s: error: psa_aead_set_nonce: %d\n", __func__, status);
+        }
 
     auto output = buffer;
     kcb_headroom_t available;
@@ -48,6 +67,8 @@ z9_error_t Z9Crypto_gcm_decrypt_KCB(psa_key_id_t key, KCB& kcb, uint8_t *prefix,
     LOG_HEXDUMP_INF(buffer, 16, "decrypted");
     if (result)
         return "GCM AUTH FAIL";
+    
+    printk("%s: Decrypt OK: input=%u bytes, output=%u, pfx_len=%u\n", __func__, len, output-buffer, prefix_len);
 
     // now put decrypted data back in KCB
     kcb.flush(10);
@@ -58,6 +79,7 @@ z9_error_t Z9Crypto_gcm_decrypt_KCB(psa_key_id_t key, KCB& kcb, uint8_t *prefix,
     while(len--)
         kcb.write(*output++);
     kcb.top();
+    printk("%s: resulting KCB: size=%u\n", __func__, kcb.length());
     return {};
 }
 

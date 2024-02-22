@@ -1,9 +1,11 @@
 
 #include "Eros_protocol.h"
 #include "z9lockio_ble.h"
+#include "Z9LockIO_protocol.h"
 #include "Z9LockIOProtocol_Current.h"
 #include "Z9Crypto.h"
 #include "EventDb.h"
+#include "KernelCharacterBuffer.h"
 
 #include <cstring>
 #include <zephyr/kernel.h>
@@ -78,9 +80,6 @@ using z9::protocols::z9lockio::getFormatter;
 // 
 
 
-
-static void z9lockio_recv(const uint8_t *buf, uint16_t buf_len);
-
 // receive from BLE driver
 static bt_conn *eros_conn;
 static uint8_t passthru_channel;
@@ -121,7 +120,10 @@ void eros_ble_recv(bt_conn *conn, const void *buf_v, uint16_t buf_len)
         return;
     }
 
-    z9lockio_recv(buf, len);
+    // put message in a KCB
+    auto& kcb = *KCB_NEW(10);        // Z9IO headroom
+    while (len--) kcb.write(*buf++);
+    z9lockio_recv(kcb.top());
 }
     
 static constexpr auto z9_bundle_header_len = 41;

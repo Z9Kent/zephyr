@@ -33,6 +33,8 @@ z9_error_t  kcb_read    (kcb_t *, uint8_t *);
 z9_error_t  kcb_write   (kcb_t *, uint8_t);
 z9_error_t  kcb_load    (kcb_t *, uint8_t *, kcb_offset_t);
 
+z9_error_t  kcb_readN   (kcb_t *, uint8_t **out, uint8_t *buf, uint16_t n, bool tryInPlace);
+
 // control sequential r/w position
 z9_error_t  kcb_top     (kcb_t *);
 z9_error_t  kcb_curPos  (kcb_t *, kcb_offset_t *);
@@ -173,6 +175,9 @@ struct KCB
     value_t     peek()              { return exec_v(kcb_peek); }
     KCB&        write(value_t c)    { return exec(kcb_write, c); }
     KCB&        load(uint8_t *p, offset_t n) { return exec(kcb_load, p, n); }
+    
+    uint8_t *   readN(uint8_t *buf, uint16_t n, bool tryInPlace=true)
+                                    { return exec_v<uint8_t *>(kcb_readN, buf, n, tryInPlace); }
 
     // position, size, & length
     KCB&        top()               { return exec(kcb_top); }

@@ -151,7 +151,7 @@ static struct bt_conn_cb connection_callbacks =
 
 // set BLE advertising paramters
 static struct bt_le_adv_param *adv_param =
-	BT_LE_ADV_PARAM(BT_LE_ADV_OPT_NONE, 
+	BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONNECTABLE, 
 			        800,    /* Min Advertising Interval 500ms (800*0.625ms) */
 			        801,    /* Max Advertising Interval 500.625ms (801*0.625ms) */
 			        NULL);  /* Set to NULL for undirected advertising */
@@ -219,6 +219,12 @@ void z9_ble_init(const struct z9_ble_callbacks *callbacks, void *arg)
     cb = *callbacks;        // save callbacks
     cb_arg = arg;
     bt_conn_cb_register(&connection_callbacks);
+    int err;
+    err = bt_enable(NULL);
+    if (err)
+    {
+        printk("%s: Bluetooth init failed (err %d)\n", __func__, err);
+    }
 }
 
 
@@ -245,6 +251,7 @@ static ssize_t on_receive(struct bt_conn *conn,
     printk("\n");
     printk("Received data: offset=%d (0x%04x), flags=0x%02x\n", offset, offset, flags);
 
+    printk("%s: cb.recv_cb = %p\n", __func__, cb.recv_cb);
     if (cb.recv_cb)
         cb.recv_cb(cb_arg, conn, buf, len);
 	return len;

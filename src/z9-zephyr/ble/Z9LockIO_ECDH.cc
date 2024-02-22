@@ -4,6 +4,7 @@
 #include "Z9LockIOProtocol_Current.h"
 #include "Z9Crypto.h"
 #include "EventDb.h"
+#include "Settings.h"
 
 #include <cstring>
 #include <zephyr/kernel.h>
@@ -176,16 +177,9 @@ std::tuple<uint8_t, uint8_t const *>Z9Lock_ECDH(uint8_t const *msg)
     
     // 5) destroy lock public key-pair
     psa_destroy_key(key_handle);
-#if 1
-    // 6) write to flash
-	nvs_write(&fs, KEY_lock_public, lock_public_key, sizeof(lock_public_key));
-	nvs_write(&fs, KEY_noc_public, noc_public_key, sizeof(noc_public_key));
-	nvs_write(&fs, KEY_noc_derived_key, noc_derived_key, sizeof(noc_derived_key));
-#endif
-    // 7 retrieve key from FS & set paired mode
-    set_lock_mode();
-    //z9lock_status.mode = LockStatusMode::NORMAL;
-    //z9lock_status.publish();
+
+    // 6) write keys to NVM storage & update Z9Lock_status()
+    nvm_settings_save_keys();
 
     // 8) return public key
     return { sizeof(lock_public_key), lock_public_key };

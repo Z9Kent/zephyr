@@ -6,15 +6,15 @@
 #include "ProtocolMetadata.h"
 #include "Z9Serialize.h"
 #include "variableArray.h"
-//#include "Z9LockIOProtocol_Serialize.cc"
+#include "Z9LockIO_protocol.h"
 
 using namespace z9;
 using namespace z9::protocols;
 using z9::protocols::z9lockio::getFormatter;
 
-static void Z9LockIO_accessReq_rsp(void *arg, const uint8_t *key, uint16_t keyLength);
+static void Z9LockIO_accessReq_rsp(const uint8_t *key, uint16_t keyLength);
 
-void Z9LockIO_accessReq(void *arg, KCB& kcb, uint8_t encrypted)
+void Z9LockIO_accessReq(KCB& kcb, uint8_t encrypted)
 {
     extern bool privacy_state;
 
@@ -22,12 +22,12 @@ void Z9LockIO_accessReq(void *arg, KCB& kcb, uint8_t encrypted)
 
     using T = LockAccessReq;
  
-    requestID  = kcb.get() << 8;
-    requestID += kcb.get();
+    uint16_t requestID  = kcb.read() << 8;
+             requestID += kcb.read();
 
-    uint8_t mobileID_buf[sizeof(uint64_t)];
-    kcb.readN(mobileID_buf, sizeof(mobildID_buf);
-    mobileID = read64(mobileID_buf);
+    uint8_t buf[sizeof(uint64_t)];
+    kcb.readN(buf, sizeof(uint64_t));
+    auto mobileID = read64(buf);
 
     printk("AccessReq: ID=%04x, mobile=" PRIu64 "\n", requestID, mobileID);
 
@@ -37,10 +37,11 @@ void Z9LockIO_accessReq(void *arg, KCB& kcb, uint8_t encrypted)
     else if (!schedMask)
         result = LockEvtCode_DOOR_ACCESS_DENIED_INACTIVE;
 
-    z9lockio_gen_access_rsp(arg, result);
+    //z9lockio_gen_access_rsp(result);
 }
 
-static void z9lockio_accessReq_rsp(void *arg, LockEvtCode result)
+#if 0
+static void z9lockio_accessReq_rsp(LockEvtCode result)
 {
     // generate an event
     auto evt  = EVT(result, mobileGrant);
@@ -63,3 +64,4 @@ static void z9lockio_accessReq_rsp(void *arg, LockEvtCode result)
     printk("%s: rsp length = %u\n", __func__, len);
     z9lockio_send_bundle(kcb, headersize, 2);
 }
+#endif

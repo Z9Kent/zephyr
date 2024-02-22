@@ -15,7 +15,8 @@
 #include "ProtocolMetadata.h"
 #include "Z9Serialize.h"
 #include "variableArray.h"
-//#include "Z9LockIOProtocol_Serialize.cc"
+#include "Z9LockIO_protocol.h"
+
 
 using namespace z9;
 using namespace z9::protocols;
@@ -78,169 +79,14 @@ using z9::protocols::z9lockio::getFormatter;
 // 
 
 
-// flash memory keys & backing store
-static struct nvs_fs fs;
-
-enum NVS_KEY { KEY_mode = 1, KEY_lock_public, KEY_noc_public, KEY_noc_derived_key};
-static uint8_t lock_public_key[65];
-static uint8_t noc_public_key[65];
-static uint8_t noc_derived_key[16];
-
-// key handles for PSA
-psa_key_id_t noc_key_handle;
-psa_key_id_t mobile_key_handle;
-
 std::tuple<uint8_t, uint8_t const *>Z9Lock_ECDH(uint8_t const *msg);
 
-// read Flash to get mode
-void set_lock_mode()
-{
-    struct flash_pages_info info;
-    int rc = 0;
-
-	/* define the nvs file system by settings with:
-	 *	sector_size equal to the pagesize,
-	 *	3 sectors
-	 *	starting at NVS_PARTITION_OFFSET
-	 */
-    printk("%s: mounting circular data fs\n", __func__);
-	fs.flash_device = NVS_PARTITION_DEVICE;
-	if (!device_is_ready(fs.flash_device)) {
-		printk("Flash device %s is not ready\n", fs.flash_device->name);
-		goto construction;
-	}
-	fs.offset = NVS_PARTITION_OFFSET;
-	rc = flash_get_page_info_by_offs(fs.flash_device, fs.offset, &info);
-	if (rc) {
-		printk("Unable to get page info\n");
-		goto construction;
-	}
-	fs.sector_size = info.size;
-	fs.sector_count = 3U;
-
-	rc = nvs_mount(&fs);
-	if (rc) {
-		printk("Flash Init failed\n");
-		goto construction;
-	}
-
-    // read keys from flash
-    rc = nvs_read(&fs, KEY_noc_public, noc_public_key, sizeof(noc_public_key));
-    printk("%s: public_key result: %d\n", __func__, rc);
-    if (rc <= 0)
-        noc_public_key[0] = 0;      // not initialized
-    rc = nvs_read(&fs, KEY_lock_public, lock_public_key, sizeof(lock_public_key));
-    if (rc <= 0)
-        noc_public_key[0] = 0;
-    rc = nvs_read(&fs, KEY_noc_derived_key, noc_derived_key, sizeof(noc_derived_key));
-    if (rc <= 0)
-        noc_public_key[0] = 0;
-    
-    if (noc_public_key[0])
-    {
-        printk("%s: retrieved derived key: ", __func__);
-        auto p = noc_derived_key;
-        auto n = sizeof(noc_derived_key);
-        while (n--)
-            printk("%02x", *p++);
-        printk("\n");
-
-        Z9Crypto_gcmSetKey(noc_key_handle, noc_derived_key, sizeof(noc_derived_key));
-        z9lock_status.mode = LockStatusMode::NORMAL;
-    }
-    else
-    {
-construction:
-        printk("%s: shared secret is uninitialized\n", __func__);
-        z9lock_status.mode = LockStatusMode::CONSTRUCTION;
-    }
-    z9lock_status.publish();
-}     
-
-
-void lock_mode_reset()
-{
-    printk("%s: clearing flash\n", __func__);
-    nvs_clear(&fs);
-}
-
-
-
-static void z9lockio_recv(const uint8_t *buf, uint16_t buf_len);
-
-// receive from BLE driver
-static bt_conn *eros_conn;
-static uint8_t passthru_channel;
-
-void eros_ble_recv(bt_conn *conn, const void *buf_v, uint16_t buf_len)
-{
-    auto buf = static_cast<const uint8_t *>(buf_v);
-    eros_conn = conn;
-    
-    // received eros pkt from mobile
-    // only want unencrypted passthru
-    if (*buf++ != 0x82) return;
-    if (*buf++ != 0x0b) return;
-
-    auto leaf_len = *buf++ << 8;
-         leaf_len += *buf++;
-
-    ++buf;
-
-    if (leaf_len != (buf_len - 5))
-    {
-        printk("%s: eros leaf length: %u incorrect (expected %u)\n", __func__, leaf_len, buf_len - 5);
-        return;
-    }
-
-    // eros passthru packet
-    passthru_channel = *buf++;
-    if (*buf++ != 0) return;        // must be first fragment
-    if (*buf++ != 1) return;        // must be only fragment 
-
-    auto len = *buf++ << 8;
-         len += *buf++;
-
-    if (len != (leaf_len - 5))
-    {
-        printk("%s: passthru message length: %u incorrect (expected %u)\n", 
-                __func__, len, leaf_len - 5);
-        return;
-    }
-
-    z9lockio_recv(buf, len);
-}
-    
 // *** HEADER LENGTHS ***    
 static constexpr auto eros_header_len = 10;
 static constexpr auto z9_bundle_header_len = 41;
 static constexpr auto z9_opaque_header_len = 5 + 2 + 12 + 16;
 
-// send to BLE driver 
-static void eros_passthru_send(uint8_t passthru_id, uint8_t *buf, uint8_t len)
-{
-    printk("%s: sending %u bytes\n", __func__, len + 10);
-    static uint8_t seq_no;
-    // NB: there is 10 bytes of room in header
-    *--buf = len;
-    *--buf = len >> 8;
-    *--buf = 1;
-    *--buf = 0;
-    *--buf = passthru_id;
-
-    // now the EROS header
-    // modify LEN to include 7 passthru bytes and 1 seq# byte
-    len += 6;
-    *--buf = ++seq_no;
-    *--buf = len;
-    *--buf = len >> 8;
-    *--buf = 0x0b;
-    *--buf = 0x82;
-    lock_service_send(eros_conn, buf, len + 4);
-    LockEventDb::instance().dump();
-}
-
-
+#if 0
 uint8_t  sourceType, interType, destType;
 uint64_t sourceID  , interID  , destID;
 bool    opaque;
@@ -249,29 +95,29 @@ uint16_t requestID;
 uint64_t mobileID;
 uint32_t unid;
 uint16_t schedMask;
-
-uint64_t read64(uint8_t **p)
+#endif
+uint64_t read64(uint8_t *p)
 {
     uint64_t value{};
     for (auto n = sizeof(value); n--; )
     {
         value <<= 8; 
-        value += *(*p)++;
+        value += *p++;
     }
     return value;
 }
 
-uint32_t read32(uint8_t **p)
+uint32_t read32(uint8_t *p)
 {
     uint32_t value{};
     for (auto n = sizeof(value); n--; )
     {
         value <<= 8; 
-        value += *(*p)++;
+        value += *p++;
     }
     return value;
 }
-
+#if 0
 uint8_t *write64(uint8_t *p, uint64_t value)
 {
     p += 8;
@@ -595,230 +441,65 @@ static void z9lockio_recv(const uint8_t *buf, uint16_t buf_len)
     k_work_submit(&p->recv_work);
 }
 
-
-static void do_z9lockio_recv(uint8_t *buf, uint16_t buf_len)
-{
-    printk("%s: Processing... (buf_len=%d)\n", __func__, buf_len);
-
-    auto initial = buf;
-
-    // validate z9lockio header
-    if (*buf++ != 'z') return;
-    if (*buf++ != '9') return;
-
-    auto len = *buf++ << 8;
-         len += *buf++;
-
-    auto discriminator = *buf++;
-    len -= 5;       // remove Z9LockIO Header length from count
-
-    printk("%s: discriminator: %u, len = %u\n", __func__, discriminator, len);
-    switch (discriminator)
-    {
-        case LockBundleHeader::DISCRIMINATOR:
-        {
-#if 0
-            sourceType = *buf++;
-            interType  = *buf++;
-            destType   = *buf++;
-            sourceID = read64(&buf);
-            interID  = read64(&buf);
-            destID   = read64(&buf);
-            buf += 7;
-            opaque      = *buf++;
-            packetCount = *buf++;
-#else
-            using T = LockBundleHeader;
-            //using T = LockDate;
-            //auto proto = Z9Serialize_ptr<T>::value;
-            auto proto = getFormatter<T>();
-            auto reader = [&buf]() { return *buf++; };
-            uint8_t scratch[128] = {};
-
-            auto p = static_cast<T *>((void *)scratch);
-            proto->deserialize(reader, scratch, sizeof(scratch), sizeof(T));
-            #if 1
-            sourceType = p->origin;
-            interType  = p->intermediary;
-            destType   = p->destination;
-            sourceID = p->originId;
-            interID  = p->intermediaryId;
-            destID   = p->destinationId;
-            opaque   = p->opaque;
-            packetCount = p->packetCount;
-            #endif
 #endif
-            printk("Bundle: source=%llu, dest=%llu, opaque=%d, packetCount=%d\n",
-                sourceID, destID, opaque, packetCount);
-            break;
-        }
 
-        case LockOpaqueContent::DISCRIMINATOR:
+void z9lockio_recv(KCB& kcb)
+{
+    int key = 0;
+
+    printk("%s: Processing... (buf_len=%u)\n", __func__, kcb.length());
+
+    // iterate over entire message
+    while (kcb.length())
+    {
+        // validate z9lockio header
+        if (kcb.read() != 'z') return;
+        if (kcb.read() != '9') return;
+
+        auto len  = kcb.read() << 8;
+            len += kcb.read();;
+
+        auto discriminator = kcb.read();
+        len -= 5;       // remove Z9LockIO Header length from count
+
+        printk("%s: discriminator: %u, len = %u\n", __func__, discriminator, len);
+        switch (discriminator)
         {
-            // read (actually get pointers to) IV + TAG
-            auto count = *buf++ << 8;
-            count += *buf++;
-            len -= 2;
-            auto iv = buf;
-            buf += 12;
-            auto tag = buf;
-            buf += 16;
-            len -= 12 + 16;     // encrypted data follows tag
-            printk("LockOpaqueContent: count = %d, len = %d\n", count, len);
+            default:
+                printk("%s: ignoring discriminator: %u\n", __func__, discriminator);
+                kcb.skip(len);
+                break;
+            
+            case LockBundleHeader::DISCRIMINATOR:
+                Z9LockIO_bundleHeader(kcb, key);
+                break;
 
-            psa_key_handle_t *key_p {};
-            const char *keyName = "UNKNOWN KEY";
-            switch (sourceType)
-            {
-                case LockIdentificationType_AUTHORITATIVE_SOURCE:
-                    key_p = &noc_key_handle;
-                    keyName = "NOC";
-                    break;
-                case LockIdentificationType_MOBILE:
-                    key_p = &mobile_key_handle;
-                    keyName = "MOBILE";
-                    break;
-                case LockIdentificationType_HUB_CONTROLLER:
-                case LockIdentificationType_LOCK:
-                case LockIdentificationType_NONE:
-                default:
-                    break;
-            }
+            case LockOpaqueContent::DISCRIMINATOR:
+                Z9LockIO_opaqueContent(kcb, key);
+                break; 
+            
+            case LockEvtControl::DISCRIMINATOR:
+                Z9LockIO_eventControl(kcb, key);
+                break;
+            
+            case LockPublicKeyExchange::DISCRIMINATOR:
+                Z9LockIO_keyExchange(kcb, key);
+                break;
+       
+            case LockDbChange_Config::DISCRIMINATOR:
+            case LockDbChange_Hol::DISCRIMINATOR:
+            case LockDbChange_Sched::DISCRIMINATOR:
+            case LockDbChange_SchedPolicy::DISCRIMINATOR:
+                Z9LockIO_dbChange(kcb, key);
+                break;
 
-            printk("%s: Processing OpaqueContent %d bytes using key: %s\n", __func__, len, keyName);
-            auto status = Z9Crypto_gcm_decrypt(*key_p, iv, nullptr, 0, buf, len, tag, 16);
-            if (status)
-                printk("%s: Decrypt failed: %d\n", __func__, status);
+            case LockAccessReq::DISCRIMINATOR:
+                Z9LockIO_accessReq(kcb, key);
+                break;
 
-            break;
-        }
-
-        case LockAccessReq::DISCRIMINATOR:
-        {
-            extern bool privacy_state;
-
-            requestID = *buf++ << 8;
-            requestID += *buf++;
-            mobileID = read64(&buf);
-            printk("AccessReq: ID=%04x, mobile=%llu\n", requestID, mobileID);
-
-            LockEvtCode result = LockEvtCode_DOOR_ACCESS_GRANTED;
-            if (privacy_state)
-                result = LockEvtCode_DOOR_ACCESS_DENIED_DOOR_PRIVACY;
-            else if (!schedMask)
-                result = LockEvtCode_DOOR_ACCESS_DENIED_INACTIVE;
-
-            z9lockio_gen_access_rsp(result);
-            break;
-        }
-
-        case LockPublicKeyExchange::DISCRIMINATOR:
-        {
-            // perform ECDH key derivation
-            // send/receive packet format is [length][length bytes]
-            printk("%s: received Key Exchange: buf_len = %d, KeyLen = %d, KeyHdr = %x\n", __func__, len, buf[0], buf[1]);
-
-            // since we only save our public key, see if NOC sent same pulic key. If so we respond with
-            // our saved key
-            if (memcmp(&buf[1], noc_public_key, sizeof(noc_public_key)) == 0 && lock_public_key[0])
-            {
-                printk("%s: NOC_didn't change: replying with saved public key", __func__);
-                z9lock_gen_keyExchange_rsp(sizeof(lock_public_key), lock_public_key);
-            }
-            else
-            {
-                auto [cnt, p] = Z9Lock_ECDH(buf);
-                if (cnt)
-                {
-                    printk("%s: calculated secret\n", __func__);
-                    z9lock_gen_keyExchange_rsp(cnt, p);
-                    printk("%s: send response\n", __func__);
-                }
-            }
-            break;
-        }
-
-        case LockCredAuthorization::DISCRIMINATOR:
-        {
-        #if 1
-            // parse this
-            // save cred
-            auto mobileID = read64(&buf);
-            auto lockID   = read64(&buf);
-            //buf += 77;      // skip LockCred
-            // read 4 bytes of UNID (for grant)
-            unid = read32(&buf);
-
-            buf += 50;      // skip to numCredBytes
-            auto numCredBytes = *buf++;
-            buf += numCredBytes;
-            buf += 4;       // skip over pi
-            auto n = *buf++ << 8;
-            schedMask = n + *buf++;
-            auto numSchedUnids = *buf++;
-            buf += numSchedUnids * 4;       // skip unids
-            auto sharedSecretLen = *buf++;
-            mobileSharedSecret.set(sharedSecretLen, buf);
-        #else
-            using T = LockCredAuthorization;
-
-            auto reader = [&buf]() { return *buf++; };
-            uint8_t scratch[128] = {};
-            auto p = static_cast<T *>((void *)scratch);
-            getFormatter<T>()->deserialize(reader, scratch, sizeof(scratch), sizeof(T));
-
-
-
-        #endif
-            // save mobile key:
-            // XXX may need to destroy old key for memory leak
-            Z9Crypto_gcmSetKey(mobile_key_handle, mobileSharedSecret(), mobileSharedSecret.size());
-
-            using IDX = meta::find_index<z9::protocols::z9lockio::FORMATS_TYPES, LockHol>;
-            printk("%s: LockHol typeid is %u\n", __func__, IDX::value); 
-            printk("%s: received CredAuthorization: lock: %llu, mobile: %llu, secret: %d bytes\n",
-                    __func__, mobileID, lockID, mobileSharedSecret.size());
-           z9lockio_gen_challenge(); 
-           break;
-        }
-
-        case LockDbChange_Config::DISCRIMINATOR:
-        case LockDbChange_Hol::DISCRIMINATOR:
-        case LockDbChange_Sched::DISCRIMINATOR:
-        case LockDbChange_SchedPolicy::DISCRIMINATOR:
-        {
-            auto requestID = read64(&buf);
-            printk("%s: Processing LockDbChange_Config: %llx\n", __func__, requestID);
-            z9lock_gen_db_resp(requestID);
-            break;
-        }
-
-        case LockEvtControl::DISCRIMINATOR:
-        {
-            using T = LockEvtControl;
-            auto proto = getFormatter<T>();
-            auto reader = [&buf]() { return *buf++; };
-            uint8_t scratch[128] = {};
-
-            auto p = static_cast<T *>((void *)scratch);
-            proto->deserialize(reader, scratch, sizeof(scratch), sizeof(T));
-            printk("EvtControl: priority=%d, sendOneBatch=%d, start=", p->priority, p->sendOneBatch);
-            printk("%d, stop=%d\n", p->consume.start.evtCode, p->consume.stop.evtCode);
-
-            if (p->consume.start.evtCode)
-                LockEventDb::instance().consume(p->priority, p->consume.start, p->consume.stop);
-            if (p->sendOneBatch)
-                z9lock_gen_evt_batch(p->priority);
-
-           break;
-        }
-        default:
-            printk("%s: ignoring discriminator: %u\n", __func__, discriminator);
-            buf += len;
-            break;
-    }
-
-    // recurse for next message
-    if (auto remaining = buf_len - (buf - initial))
-        do_z9lockio_recv(buf, remaining);
-}
+            case LockCredAuthorization::DISCRIMINATOR:
+                Z9LockIO_credAuthorization(kcb, key);
+                break;
+        }       // switch
+    }           // while
+}               // function

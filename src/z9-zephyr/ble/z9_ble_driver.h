@@ -22,9 +22,9 @@ extern "C" {
 /* 
  * Z9 BLE DRIVER callbacks for connections and data transfer
  */
-
+struct bt_conn;
 typedef void (*send_cb_t)  (void *conn  , uint8_t *data, uint16_t length);
-typedef void (*recv_cb_t)  (void *cb_arg, void *conn, uint8_t const *data, uint16_t length);
+typedef void (*recv_cb_t)  (void *cb_arg, struct bt_conn *conn, uint8_t const *data, uint16_t length);
 typedef void (*conn_cb_t)  (void *cb_arg, send_cb_t fn, void *conn);
 typedef bool (*accept_cb_t)(void *cb_arg, void *peer);
 

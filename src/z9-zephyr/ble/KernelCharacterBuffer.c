@@ -277,6 +277,14 @@ z9_error_t kcb_read(kcb_t *kcb, uint8_t *pChar)
     return NULL;
 }
 
+// for now, just loop
+z9_error_t kcb_readN(kcb_t *kcb, uint8_t **out, uint8_t *in, uint16_t n, bool tryInPlace)
+{
+    *out = in;
+    while (n-- > 1) kcb_read(kcb, in++);
+    return kcb_read(kcb, in);
+}
+
 // overwrite character at R/W pointer
 z9_error_t kcb_write(kcb_t *kcb, uint8_t c)
 {
@@ -540,10 +548,12 @@ unsigned kcb_count(kcb_t *kcb, struct KernelBuffer **last_p)
     struct KernelBuffer *p = (void *)kcb;
 
     // idiom to count non-empty linked list
-    unsigned n = 0;
-    do
+    unsigned n = 1;
+    while (p->next_p)
+    {
+        p = p->next_p;
         ++n;
-    while ((p = p->next_p));
+    }
 
     // save pointer to end if requested
     if (last_p)
