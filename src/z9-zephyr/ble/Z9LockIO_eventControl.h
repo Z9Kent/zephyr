@@ -9,5 +9,4 @@
 
 // Entrypoint for received message
 void Z9LockIO_eventControl(KCB& kcb, uint8_t key);
-void Z9LockIO_gen_evtBatch();
 

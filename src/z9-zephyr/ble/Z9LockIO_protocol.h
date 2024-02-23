@@ -15,5 +15,6 @@
 
 uint64_t read64(uint8_t *p);
 uint32_t read32(uint8_t *p);
+uint8_t *write64(uint8_t *p, uint64_t value);
 
 void z9lockio_recv(KCB& kcb);

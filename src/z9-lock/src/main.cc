@@ -19,7 +19,8 @@ LOG_MODULE_REGISTER(z9_ble, LOG_LEVEL_INF);
 #define RUN_LED_BLINK_INTERVAL 1000
 
 #define GREEN_LED_NODE  DT_ALIAS(led0)
-#define RED_LED_NODE    DT_ALIAS(led1)
+//#define RED_LED_NODE    DT_ALIAS(led1)
+#define RED_LED_NODE    DT_ALIAS(led0)
 static const gpio_dt_spec green_led = GPIO_DT_SPEC_GET(GREEN_LED_NODE, gpios);
 static const gpio_dt_spec red_led   = GPIO_DT_SPEC_GET(RED_LED_NODE  , gpios);
 
@@ -57,7 +58,8 @@ static void perform_reset(struct k_work *work)
 {
         printk("%s: expired\n", __func__);
         nvm_settings_reset();           // clear flash
-        __NVIC_SystemReset();
+        //__NVIC_SystemReset();
+        abort();
 }
 
 K_WORK_DELAYABLE_DEFINE(pairing_timer, pairing_expired);
@@ -120,7 +122,7 @@ int main()
         err = button_init(button_changed);
         if (err) {
                 printk("Button init failed (err %d)\n", err);
-                return err;
+                //return err;
         }
         
         nvm_settings_init();           // read settings: retrive keys & set mode

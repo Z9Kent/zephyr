@@ -117,7 +117,6 @@ uint32_t read32(uint8_t *p)
     }
     return value;
 }
-#if 0
 uint8_t *write64(uint8_t *p, uint64_t value)
 {
     p += 8;
@@ -126,6 +125,7 @@ uint8_t *write64(uint8_t *p, uint64_t value)
     return p + 8;
 }
 
+#if 0
 static uint8_t *z9lockio_create_bundle_header(uint8_t *p, bool toInter = false, bool opaque = false, uint8_t count = 1)
 {
     auto first = p;
@@ -500,6 +500,7 @@ void z9lockio_recv(KCB& kcb)
             case LockCredAuthorization::DISCRIMINATOR:
                 Z9LockIO_credAuthorization(kcb, key);
                 break;
-        }       // switch
-    }           // while
-}               // function
+
+        }   // switch
+    }       // while
+}           // function

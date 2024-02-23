@@ -1,5 +1,7 @@
 {
     "nrf-connect.applications": [
         "${workspaceFolder}/src/z9-lock"
-    ]
+    ],
+    "nrf-connect.toolchain.path": "${nrf-connect.zephyrsdk:0.16.3}",
+    "cmake.sourceDirectory": "/Users/kent/Projects/z9-lock-zephyr/src/modules/lib/cmsis-nn/Source/FullyConnectedFunctions"
 }

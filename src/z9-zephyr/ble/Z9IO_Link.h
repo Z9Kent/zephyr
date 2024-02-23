@@ -22,7 +22,9 @@ using Z9IO_inbound = void (*)(void *data, Z9IO_Link const&, KCB&);
 // declare internal states
 enum Z9IO_Link_State : uint8_t {
           LS_INIT
-        , LS_WAIT_BOARD_INFO
+        , LS_WAIT_HELLO         // remote init
+        , LS_PEND_BOARD_INFO    // remote pending send
+        , LS_WAIT_BOARD_INFO    // controller init
         , LS_KEY_XCHANGE_PEND
         , LS_KEY_XCHANGE_WAIT
         , LS_IDLE
@@ -32,6 +34,8 @@ enum Z9IO_Link_State : uint8_t {
 
 static const char * const Z9IO_Link_State_str [NUM_Z9IO_Link_State] = {
       [LS_INIT]            = "INIT"
+    , [LS_WAIT_HELLO]      = "WAIT_HELLO"
+    , [LS_PEND_BOARD_INFO] = "PEND_BOARD_INFO"
     , [LS_WAIT_BOARD_INFO] = "WAIT_INFO"
     , [LS_KEY_XCHANGE_PEND] = "KEY_XCG_PEND"
     , [LS_KEY_XCHANGE_WAIT] = "KEY_XCG_WAIT"
@@ -100,6 +104,8 @@ private:
     uint8_t             _unit;
     Z9IO_Link_State     state;
     uint8_t             retry_count;
+    bool                ack_pending;
+    bool                encrypted_req;
     
     // define ordinal -> instance mapping for get
     static inline std::array<Z9IO_Link *, NUM_Z9IO_LINK> pInstances;

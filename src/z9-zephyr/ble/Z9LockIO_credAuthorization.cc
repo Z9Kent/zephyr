@@ -15,11 +15,12 @@ using namespace z9;
 using namespace z9::protocols;
 using z9::protocols::z9lockio::getFormatter;
 
-static void z9lockio_gen_challenge(void *arg);
 uint64_t mobileID;
 uint32_t unid;
 uint8_t  schedMask;
 psa_key_id_t mobile_key_handle;
+
+static void Z9LockIO_gen_challenge();
 
 void Z9LockIO_credAuthorization(KCB& kcb, uint8_t encrypted)
 {
@@ -55,20 +56,18 @@ void Z9LockIO_credAuthorization(KCB& kcb, uint8_t encrypted)
 
     printk("%s: received CredAuthorization: lock: %llu, mobile: %llu, secret: %d bytes\n",
             __func__, mobileID, lockID, sharedSecretLen);
-    //z9lockio_gen_challenge(arg); 
+    Z9LockIO_gen_challenge(); 
 }
 
 
-static void z9lockio_gen_challenge(void *arg)
+static void Z9LockIO_gen_challenge()
 {
-#if 0
-    auto kcb = Z9LockIO_createBundleHeder(bool opaque = true, bool toIntermediate = false, uint8_t count = 1)
-    LockMobileBleChallengeNonce::DISCRIMINATOR;
-    sizeof(ble_challenge);
-    std::memcpy(p, ble_challenge, sizeof(ble_challenge));
-    p += sizeof(ble_challenge);
-    
-    printk("%s: challenge length = %u\n", __func__, len);
-    z9lockio_send_bundle(kcb, headersize, 2);
-#endif
+    static constexpr auto discriminator = LockMobileBleChallengeNonce::DISCRIMINATOR;
+    static constexpr auto challengeLen  = 16;
+
+    // packet is unencrypted & to intermediary
+    auto& kcb = *Z9LockIO_createBundleHeader(discriminator, false, true);
+    kcb.write(challengeLen);
+    kcb.load(Z9Crypto_random(), challengeLen);
+    Z9LockIO_sendBundle(kcb);
 }

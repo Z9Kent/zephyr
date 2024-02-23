@@ -160,8 +160,43 @@ z9_error_t kcb_peek(kcb_t *kcb, uint8_t *pChar)
         return 0;
     }
 
-    // read character & update count
+    // read character
     *pChar = kcb->rw_p->data[kcb->read_end - kcb->read_cnt];
+    return NULL;
+}
+
+// update character at R/W pointer
+z9_error_t kcb_poke(kcb_t *kcb, uint8_t c)
+{
+    // if not in read mode, read from beginning
+    if (kcb->read_end == 0)
+        kcb_top(kcb);
+
+    // if at end of current block, goto next block
+    if (kcb->read_cnt == 0 && kcb->rw_p->next_p)
+    {
+        kcb->rw_p = kcb->rw_p->next_p;               // move RW to next block
+        kcb->read_end = sizeof(struct KernelBuffer); // get offset to end of block
+        kcb->read_cnt = sizeof(struct KernelBuffer) - sizeof(struct KernelBuffer *);
+        // if last block, adjust read_* counts
+        if (!kcb->rw_p->next_p)
+        {
+            kcb->read_end -= kcb->tail_cnt; // adjust end...
+            kcb->read_cnt -= kcb->tail_cnt; // ...and count
+        }
+    }
+
+    // if still at end -- reading past end
+    if (kcb->read_cnt == 0)
+    {
+        // read past end is error
+        kcb->head_org = KCB_ERR_RW_POS;
+        LOG_WRN("%s: Error: %s (%d)", __func__, kcb_errorStr(kcb->head_org), (int)kcb->head_org);
+        return 0;
+    }
+
+    // update character 
+    kcb->rw_p->data[kcb->read_end - kcb->read_cnt] = c;
     return NULL;
 }
 

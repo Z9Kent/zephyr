@@ -31,6 +31,7 @@ uint16_t    kcb_ident   (kcb_t *);
 z9_error_t  kcb_peek    (kcb_t *, uint8_t *);
 z9_error_t  kcb_read    (kcb_t *, uint8_t *);
 z9_error_t  kcb_write   (kcb_t *, uint8_t);
+z9_error_t  kcb_poke    (kcb_t *, uint8_t);
 z9_error_t  kcb_load    (kcb_t *, const void *, kcb_offset_t);
 
 z9_error_t  kcb_readN   (kcb_t *, uint8_t **out, uint8_t *buf, uint16_t n, bool tryInPlace);
@@ -165,7 +166,7 @@ struct KCB
         kcb_t *kcb = *this;
         return &kcb->queue[0];
     }
-
+ 
     uint16_t    id()     const       { return kcb_ident(*this); }
     error_t     status() const       { return kcb_status(*this); }
     KCB&        flush(kcb_headroom_t h) { return exec(kcb_flush, h); }
@@ -174,6 +175,7 @@ struct KCB
     value_t     read()              { return exec_v(kcb_read); }
     value_t     peek()              { return exec_v(kcb_peek); }
     KCB&        write(value_t c)    { return exec(kcb_write, c); }
+    KCB&        poke(value_t c)     { return exec(kcb_poke, c);  }
     KCB&        load(const void *p, offset_t n) { return exec(kcb_load, p, n); }
     
     uint8_t *   readN(uint8_t *buf, uint16_t n, bool tryInPlace=true)

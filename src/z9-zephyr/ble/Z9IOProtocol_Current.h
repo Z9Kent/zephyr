@@ -1,10 +1,24 @@
-// Copyright (C) 2011-Infinity Z9 Security. All rights reserved.
+/*
+ * Copyright (C) 2011-Infinity Z9 Security. All rights reserved.
+ */
 
+/**
+ * @file Z9IOProtocol_Current.h
+ * @author Z9 Security
+ */
 
 #pragma once
 
-#include <stdint.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+#include <stdint.h>
+#include <stdbool.h>
+
+
+struct BasicSerializer;
+struct BasicDeserializer;
 
 /**
  * Enum: {@link HostPairingState.h}.
@@ -16,6 +30,32 @@ enum HostPairingState
 	HostPairingState_PAIRED,
 };
 
+#ifdef WITH_LOGGING
+/**
+ * Convert HostPairingState to a string.
+ * @return "?" if unknown.
+ */
+const char *HostPairingState_toString(enum HostPairingState value);
+#endif // WITH_LOGGING
+
+
+/**
+ * Enum: {@link ProtocolPassthruId.h}.
+ */
+enum ProtocolPassthruId
+{
+	ProtocolPassthruId_NONE,
+	ProtocolPassthruId_Z9LOCKIO,
+	ProtocolPassthruId_SECURE_ELEMENT,
+};
+
+#ifdef WITH_LOGGING
+/**
+ * Convert ProtocolPassthruId to a string.
+ * @return "?" if unknown.
+ */
+const char *ProtocolPassthruId_toString(enum ProtocolPassthruId value);
+#endif // WITH_LOGGING
 
 
 /**
@@ -29,6 +69,13 @@ enum EncryptionKeyExchangeType
 	EncryptionKeyExchangeType_LINK_SESSION_SEED_RESP,
 };
 
+#ifdef WITH_LOGGING
+/**
+ * Convert EncryptionKeyExchangeType to a string.
+ * @return "?" if unknown.
+ */
+const char *EncryptionKeyExchangeType_toString(enum EncryptionKeyExchangeType value);
+#endif // WITH_LOGGING
 
 
 /**
@@ -44,195 +91,183 @@ enum ApplicationEncryptionKeyExchangeType
 	ApplicationEncryptionKeyExchangeType_BLE_CHALLENGE_NONCE_RESP,
 };
 
+#ifdef WITH_LOGGING
+/**
+ * Convert ApplicationEncryptionKeyExchangeType to a string.
+ * @return "?" if unknown.
+ */
+const char *ApplicationEncryptionKeyExchangeType_toString(enum ApplicationEncryptionKeyExchangeType value);
+#endif // WITH_LOGGING
 
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.PacketContent
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link PacketContent.h}.
  */
-class PacketContent
+struct PacketContent
 {
-public:
 	int8_t contentType;
-
 };
 
+/** Maximum serialized length for RawRead. */
+#define RawRead_MAX_SERIALIZED_LEN 36
+
+/** Discriminator which identifies this subtype (RawRead) in a union. */
+#define RawRead_DISCRIMINATOR 1
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.in.RawRead
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link RawRead.h}.
  */
-class RawRead : public PacketContent
+struct RawRead
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 36;
-	static const int8_t DISCRIMINATOR = 1;
+	struct PacketContent base;
 	int8_t readerIndex;
 	int8_t trimBitsInLastByte;
-	// incorporated into subsequent variableArray: int8_t numBytes;
-	variableArray<32, int8_t, int8_t> bytes;
-
+	int8_t numBytes;
+	int8_t bytes[32];
 };
 
+/** Maximum serialized length for RawKey. */
+#define RawKey_MAX_SERIALIZED_LEN 3
+
+/** Discriminator which identifies this subtype (RawKey) in a union. */
+#define RawKey_DISCRIMINATOR 19
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.in.RawKey
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link RawKey.h}.
  */
-class RawKey : public PacketContent
+struct RawKey
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 3;
-	static const int8_t DISCRIMINATOR = 19;
+	struct PacketContent base;
 	int8_t keypadIndex;
 	int8_t key;
-
 };
 
+/** Maximum serialized length for DigitalRead. */
+#define DigitalRead_MAX_SERIALIZED_LEN 4
+
+/** Discriminator which identifies this subtype (DigitalRead) in a union. */
+#define DigitalRead_DISCRIMINATOR 4
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.in.DigitalRead
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link DigitalRead.h}.
  */
-class DigitalRead : public PacketContent
+struct DigitalRead
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 4;
-	static const int8_t DISCRIMINATOR = 4;
+	struct PacketContent base;
 	int8_t inputIndex;
-	bool value;
-	bool active;
-
+	bool value:1;
+	bool active:1;
 };
 
+/** Maximum serialized length for TemperatureRead. */
+#define TemperatureRead_MAX_SERIALIZED_LEN 18
+
+/** Discriminator which identifies this subtype (TemperatureRead) in a union. */
+#define TemperatureRead_DISCRIMINATOR 5
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.in.TemperatureRead
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link TemperatureRead.h}.
  */
-class TemperatureRead : public PacketContent
+struct TemperatureRead
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 18;
-	static const int8_t DISCRIMINATOR = 5;
+	struct PacketContent base;
 	int8_t deviceIndex;
 	int8_t deviceAddress[8];
-	flat tempC;
+	float tempC;
 	float humidity;
-
 };
 
+/** Maximum serialized length for BoardInfo. */
+#define BoardInfo_MAX_SERIALIZED_LEN 34
+
+/** Discriminator which identifies this subtype (BoardInfo) in a union. */
+#define BoardInfo_DISCRIMINATOR 7
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.in.BoardInfo
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link BoardInfo.h}.
  */
-class BoardInfo : public PacketContent
+struct BoardInfo
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 34;
-	static const int8_t DISCRIMINATOR = 7;
+	struct PacketContent base;
 	int8_t protocolVersionMajor;
 	int8_t protocolVersionMinor;
 	int16_t model;
 	int8_t firmwareVersionMajor;
 	int8_t firmwareVersionMinor;
-	bool encryptionEnabled;
+	bool encryptionEnabled:1;
 	int64_t serialNumber;
 	int8_t spare;
 	int16_t webServerPort;
 	int16_t protocolServerPort;
-	bool mega;
-	bool enableSD;
-	bool enableEthernet;
-	bool enableSystemLED;
-	bool enableDigitalIn;
-	bool enableDigitalOut;
-	bool enableAnalogIn;
-	bool enableData01;
-	bool enableRfid;
-	bool enableLCD;
-	bool enableKeypad;
-	bool enableDallasTemperature;
-	bool enableSHTXTemperature;
-
+	bool mega:1;
+	bool enableSD:1;
+	bool enableEthernet:1;
+	bool enableSystemLED:1;
+	bool enableDigitalIn:1;
+	bool enableDigitalOut:1;
+	bool enableAnalogIn:1;
+	bool enableData01:1;
+	bool enableRfid:1;
+	bool enableLCD:1;
+	bool enableKeypad:1;
+	bool enableDallasTemperature:1;
+	bool enableSHTXTemperature:1;
 };
 
+/** Maximum serialized length for AnalogRead. */
+#define AnalogRead_MAX_SERIALIZED_LEN 5
+
+/** Discriminator which identifies this subtype (AnalogRead) in a union. */
+#define AnalogRead_DISCRIMINATOR 9
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.in.AnalogRead
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link AnalogRead.h}.
  */
-class AnalogRead : public PacketContent
+struct AnalogRead
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 5;
-	static const int8_t DISCRIMINATOR = 9;
+	struct PacketContent base;
 	int8_t inputIndex;
 	int16_t value;
 	int8_t active;
-
 };
 
+/** Maximum serialized length for FileContents. */
+#define FileContents_MAX_SERIALIZED_LEN 1034
 
+/** Discriminator which identifies this subtype (FileContents) in a union. */
+#define FileContents_DISCRIMINATOR 12
+
+#ifdef WITH_LARGE_Z9IO_PACKET_CONTENT
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.in.FileContents
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link FileContents.h}.
  */
-class FileContents : public PacketContent
+struct FileContents
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 1034;
-	static const int8_t DISCRIMINATOR = 12;
+	struct PacketContent base;
 	int8_t fileId;
 	int32_t offset;
-	bool eof;
+	bool eof:1;
 	int8_t exception;
-	// incorporated into subsequent variableArray: int16_t numBytes;
-	variableArray<1024, int16_t, int8_t> bytes;
-
+	int16_t numBytes;
+	int8_t bytes[1024];
 };
+#endif
 
+/** Maximum serialized length for BoardStatus. */
+#define BoardStatus_MAX_SERIALIZED_LEN 55
+
+/** Discriminator which identifies this subtype (BoardStatus) in a union. */
+#define BoardStatus_DISCRIMINATOR 14
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.in.BoardStatus
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link BoardStatus.h}.
  */
-class BoardStatus : public PacketContent
+struct BoardStatus
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 55;
-	static const int8_t DISCRIMINATOR = 14;
+	struct PacketContent base;
 	int32_t millis;
 	int16_t memoryAvailable;
-	bool helloReceived;
+	bool helloReceived:1;
 	int8_t protocolConnectionType;
 	int32_t numSerialProtocolPacketsRead;
 	int32_t numSerialProtocolPacketsWritten;
@@ -248,200 +283,178 @@ public:
 	int16_t lastNetworkProtocolOutputError;
 	int32_t numSdErrors;
 	int16_t lastSdError;
-
 };
 
+/** Maximum serialized length for Pong. */
+#define Pong_MAX_SERIALIZED_LEN 1
+
+/** Discriminator which identifies this subtype (Pong) in a union. */
+#define Pong_DISCRIMINATOR 16
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.in.Pong
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link Pong.h}.
  */
-class Pong : public PacketContent
+struct Pong
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 1;
-	static const int8_t DISCRIMINATOR = 16;
-
+	struct PacketContent base;
 };
 
+/** Maximum serialized length for Ack. */
+#define Ack_MAX_SERIALIZED_LEN 3
+
+/** Discriminator which identifies this subtype (Ack) in a union. */
+#define Ack_DISCRIMINATOR 21
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.in.Ack
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link Ack.h}.
  */
-class Ack : public PacketContent
+struct Ack
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 3;
-	static const int8_t DISCRIMINATOR = 21;
+	struct PacketContent base;
 	int8_t spare;
 	int8_t responseToSeqno;
-
 };
 
+/** Maximum serialized length for Nak. */
+#define Nak_MAX_SERIALIZED_LEN 4
+
+/** Discriminator which identifies this subtype (Nak) in a union. */
+#define Nak_DISCRIMINATOR 22
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.in.Nak
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link Nak.h}.
  */
-class Nak : public PacketContent
+struct Nak
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 4;
-	static const int8_t DISCRIMINATOR = 22;
+	struct PacketContent base;
 	int8_t spare;
 	int8_t responseToSeqno;
 	int8_t reason;
-
 };
 
+/** Maximum serialized length for RawKeys. */
+#define RawKeys_MAX_SERIALIZED_LEN 35
+
+/** Discriminator which identifies this subtype (RawKeys) in a union. */
+#define RawKeys_DISCRIMINATOR 24
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.in.RawKeys
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link RawKeys.h}.
  */
-class RawKeys : public PacketContent
+struct RawKeys
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 35;
-	static const int8_t DISCRIMINATOR = 24;
+	struct PacketContent base;
 	int8_t keypadIndex;
-	// incorporated into subsequent variableArray: int8_t numKeys;
-	variableArray<32, int8_t, int8_t> keys;
-
+	int8_t numKeys;
+	int8_t keys[32];
 };
 
+/** Maximum serialized length for UserIdRead. */
+#define UserIdRead_MAX_SERIALIZED_LEN 35
+
+/** Discriminator which identifies this subtype (UserIdRead) in a union. */
+#define UserIdRead_DISCRIMINATOR 25
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.in.UserIdRead
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link UserIdRead.h}.
  */
-class UserIdRead : public PacketContent
+struct UserIdRead
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 35;
-	static const int8_t DISCRIMINATOR = 25;
+	struct PacketContent base;
 	int8_t readerIndex;
-	// incorporated into subsequent variableArray: int8_t numUserIdChars;
-	variableArray<32, int8_t, int8_t> userIdChars;
-
+	int8_t numUserIdChars;
+	int8_t userIdChars[32];
 };
 
+/** Maximum serialized length for ReaderStatus. */
+#define ReaderStatus_MAX_SERIALIZED_LEN 5
+
+/** Discriminator which identifies this subtype (ReaderStatus) in a union. */
+#define ReaderStatus_DISCRIMINATOR 28
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.in.ReaderStatus
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link ReaderStatus.h}.
  */
-class ReaderStatus : public PacketContent
+struct ReaderStatus
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 5;
-	static const int8_t DISCRIMINATOR = 28;
+	struct PacketContent base;
 	int8_t readerIndex;
-	bool offline;
-	bool tamper;
-	bool power;
-
+	bool offline:1;
+	bool tamper:1;
+	bool power:1;
 };
 
+/** Maximum serialized length for FileAvailable. */
+#define FileAvailable_MAX_SERIALIZED_LEN 6
+
+/** Discriminator which identifies this subtype (FileAvailable) in a union. */
+#define FileAvailable_DISCRIMINATOR 33
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.in.FileAvailable
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link FileAvailable.h}.
  */
-class FileAvailable : public PacketContent
+struct FileAvailable
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 6;
-	static const int8_t DISCRIMINATOR = 33;
+	struct PacketContent base;
 	int8_t fileId;
 	int32_t fileLength;
-
 };
 
+/** Maximum serialized length for ProcessFile. */
+#define ProcessFile_MAX_SERIALIZED_LEN 2
+
+/** Discriminator which identifies this subtype (ProcessFile) in a union. */
+#define ProcessFile_DISCRIMINATOR 34
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.in.ProcessFile
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link ProcessFile.h}.
  */
-class ProcessFile : public PacketContent
+struct ProcessFile
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 2;
-	static const int8_t DISCRIMINATOR = 34;
+	struct PacketContent base;
 	int8_t fileId;
-
 };
 
+/** Maximum serialized length for Ping. */
+#define Ping_MAX_SERIALIZED_LEN 1
+
+/** Discriminator which identifies this subtype (Ping) in a union. */
+#define Ping_DISCRIMINATOR 15
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.out.Ping
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link Ping.h}.
  */
-class Ping : public PacketContent
+struct Ping
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 1;
-	static const int8_t DISCRIMINATOR = 15;
-
+	struct PacketContent base;
 };
 
+/** Maximum serialized length for BoardStatusQuery. */
+#define BoardStatusQuery_MAX_SERIALIZED_LEN 1
+
+/** Discriminator which identifies this subtype (BoardStatusQuery) in a union. */
+#define BoardStatusQuery_DISCRIMINATOR 13
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.out.BoardStatusQuery
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link BoardStatusQuery.h}.
  */
-class BoardStatusQuery : public PacketContent
+struct BoardStatusQuery
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 1;
-	static const int8_t DISCRIMINATOR = 13;
-
+	struct PacketContent base;
 };
 
+/** Maximum serialized length for Config. */
+#define Config_MAX_SERIALIZED_LEN 18
+
+/** Discriminator which identifies this subtype (Config) in a union. */
+#define Config_DISCRIMINATOR 10
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.out.Config
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link Config.h}.
  */
-class Config : public PacketContent
+struct Config
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 18;
-	static const int8_t DISCRIMINATOR = 10;
+	struct PacketContent base;
 	int8_t enableSystemLED;
 	int32_t enableDigitalIn;
 	int32_t enableDigitalOut;
@@ -452,102 +465,92 @@ public:
 	int8_t enableDallasTemperature;
 	int8_t enableSHTXTemperature;
 	int8_t enableKeypad;
-
 };
 
+/** Maximum serialized length for FileQuery. */
+#define FileQuery_MAX_SERIALIZED_LEN 6
+
+/** Discriminator which identifies this subtype (FileQuery) in a union. */
+#define FileQuery_DISCRIMINATOR 11
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.out.FileQuery
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link FileQuery.h}.
  */
-class FileQuery : public PacketContent
+struct FileQuery
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 6;
-	static const int8_t DISCRIMINATOR = 11;
+	struct PacketContent base;
 	int8_t fileId;
 	int32_t offset;
-
 };
 
+/** Maximum serialized length for Hello. */
+#define Hello_MAX_SERIALIZED_LEN 5
+
+/** Discriminator which identifies this subtype (Hello) in a union. */
+#define Hello_DISCRIMINATOR 8
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.out.Hello
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link Hello.h}.
  */
-class Hello : public PacketContent
+struct Hello
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 5;
-	static const int8_t DISCRIMINATOR = 8;
+	struct PacketContent base;
 	int8_t protocolVersionMajor;
 	int8_t protocolVersionMinor;
-	bool multidrop;
-	bool encryptionEnabled;
-
+	bool multidrop:1;
+	bool encryptionEnabled:1;
 };
 
+/** Maximum serialized length for SerialWrite. */
+#define SerialWrite_MAX_SERIALIZED_LEN 51
+
+/** Discriminator which identifies this subtype (SerialWrite) in a union. */
+#define SerialWrite_DISCRIMINATOR 6
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.out.SerialWrite
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link SerialWrite.h}.
  */
-class SerialWrite : public PacketContent
+struct SerialWrite
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 51;
-	static const int8_t DISCRIMINATOR = 6;
+	struct PacketContent base;
 	int8_t portIndex;
-	// incorporated into subsequent variableArray: int8_t numBytes;
-	variableArray<48, int8_t, int8_t> bytes;
-
+	int8_t numBytes;
+	int8_t bytes[48];
 };
 
+/** Maximum serialized length for DisplayWrite. */
+#define DisplayWrite_MAX_SERIALIZED_LEN 51
+
+/** Discriminator which identifies this subtype (DisplayWrite) in a union. */
+#define DisplayWrite_DISCRIMINATOR 20
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.out.DisplayWrite
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link DisplayWrite.h}.
  */
-class DisplayWrite : public PacketContent
+struct DisplayWrite
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 51;
-	static const int8_t DISCRIMINATOR = 20;
+	struct PacketContent base;
 	int8_t portIndex;
-	// incorporated into subsequent variableArray: int8_t numBytes;
-	variableArray<48, int8_t, int8_t> bytes;
-
+	int8_t numBytes;
+	int8_t bytes[48];
 };
 
+/** Maximum serialized length for AnalogInConfig. */
+#define AnalogInConfig_MAX_SERIALIZED_LEN 19
+
+/** Discriminator which identifies this subtype (AnalogInConfig) in a union. */
+#define AnalogInConfig_DISCRIMINATOR 17
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.out.AnalogInConfig
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link AnalogInConfig.h}.
  */
-class AnalogInConfig : public PacketContent
+struct AnalogInConfig
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 19;
-	static const int8_t DISCRIMINATOR = 17;
+	struct PacketContent base;
 	int8_t inputIndex;
-	bool enabled;
-	bool invert;
-	bool reportAllData;
+	bool enabled:1;
+	bool invert:1;
+	bool reportAllData:1;
 	int16_t debounce;
 	int16_t loStart;
 	int16_t loStop;
@@ -555,262 +558,288 @@ public:
 	int16_t hiStop;
 	int16_t tolerance;
 	int16_t pollInterval;
-
 };
 
+/** Maximum serialized length for DigitalInConfig. */
+#define DigitalInConfig_MAX_SERIALIZED_LEN 8
+
+/** Discriminator which identifies this subtype (DigitalInConfig) in a union. */
+#define DigitalInConfig_DISCRIMINATOR 18
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.out.DigitalInConfig
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link DigitalInConfig.h}.
  */
-class DigitalInConfig : public PacketContent
+struct DigitalInConfig
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 8;
-	static const int8_t DISCRIMINATOR = 18;
+	struct PacketContent base;
 	int8_t inputIndex;
-	bool enabled;
-	bool invert;
-	bool reportAllData;
-	bool enablePullup;
+	bool enabled:1;
+	bool invert:1;
+	bool reportAllData:1;
+	bool enablePullup:1;
 	int16_t debounce;
-
 };
 
+/** Maximum serialized length for DigitalWrite. */
+#define DigitalWrite_MAX_SERIALIZED_LEN 5
+
+/** Discriminator which identifies this subtype (DigitalWrite) in a union. */
+#define DigitalWrite_DISCRIMINATOR 3
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.out.DigitalWrite
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link DigitalWrite.h}.
  */
-class DigitalWrite : public PacketContent
+struct DigitalWrite
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 5;
-	static const int8_t DISCRIMINATOR = 3;
+	struct PacketContent base;
 	int8_t outputIndex;
 	int8_t value;
 	int16_t duration;
-
 };
 
+/** Maximum serialized length for RawWrite. */
+#define RawWrite_MAX_SERIALIZED_LEN 36
+
+/** Discriminator which identifies this subtype (RawWrite) in a union. */
+#define RawWrite_DISCRIMINATOR 2
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.out.RawWrite
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link RawWrite.h}.
  */
-class RawWrite : public PacketContent
+struct RawWrite
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 36;
-	static const int8_t DISCRIMINATOR = 2;
+	struct PacketContent base;
 	int8_t readerIndex;
 	int8_t trimBitsInLastByte;
-	// incorporated into subsequent variableArray: int8_t numBytes;
-	variableArray<32, int8_t, int8_t> bytes;
-
+	int8_t numBytes;
+	int8_t bytes[32];
 };
 
+/** Maximum serialized length for ReaderState. */
+#define ReaderState_MAX_SERIALIZED_LEN 51
+
+/** Discriminator which identifies this subtype (ReaderState) in a union. */
+#define ReaderState_DISCRIMINATOR 26
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.out.ReaderState
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link ReaderState.h}.
  */
-class ReaderState : public PacketContent
+struct ReaderState
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 51;
-	static const int8_t DISCRIMINATOR = 26;
+	struct PacketContent base;
 	int8_t readerIndex;
 	int8_t doorModeType;
 	int8_t stateType;
 	int32_t stateTypeSeqNo;
-	// incorporated into subsequent variableArray: int8_t numUserIdChars;
-	variableArray<32, int8_t, int8_t> userIdChars;
-	bool credUnidPresent;
+	int8_t numUserIdChars;
+	int8_t userIdChars[32];
+	bool credUnidPresent:1;
 	int32_t credUnid;
-	bool credHolderUnidPresent;
+	bool credHolderUnidPresent:1;
 	int32_t credHolderUnid;
-
 };
 
+/** Maximum serialized length for Poll. */
+#define Poll_MAX_SERIALIZED_LEN 1
+
+/** Discriminator which identifies this subtype (Poll) in a union. */
+#define Poll_DISCRIMINATOR 29
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.out.Poll
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link Poll.h}.
  */
-class Poll : public PacketContent
+struct Poll
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 1;
-	static const int8_t DISCRIMINATOR = 29;
-
+	struct PacketContent base;
 };
 
+/** Maximum serialized length for HostInfo. */
+#define HostInfo_MAX_SERIALIZED_LEN 13
+
+/** Discriminator which identifies this subtype (HostInfo) in a union. */
+#define HostInfo_DISCRIMINATOR 31
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.out.HostInfo
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link HostInfo.h}.
  */
-class HostInfo : public PacketContent
+struct HostInfo
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 13;
-	static const int8_t DISCRIMINATOR = 31;
+	struct PacketContent base;
 	uint16_t model;
 	uint8_t firmwareVersionMajor;
 	uint8_t firmwareVersionMinor;
 	uint64_t serialNumber;
-
 };
 
+/** Maximum serialized length for HostStatus. */
+#define HostStatus_MAX_SERIALIZED_LEN 5
+
+/** Discriminator which identifies this subtype (HostStatus) in a union. */
+#define HostStatus_DISCRIMINATOR 32
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.out.HostStatus
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link HostStatus.h}.
  */
-class HostStatus : public PacketContent
+struct HostStatus
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 5;
-	static const int8_t DISCRIMINATOR = 32;
-	HostPairingState pairingState;
-	bool tamper;
-	bool lowBattery;
-	bool syncRequested;
-
+	struct PacketContent base;
+	enum HostPairingState pairingState;
+	bool tamper:1;
+	bool lowBattery:1;
+	bool syncRequested:1;
 };
 
+#ifdef WITH_LARGE_Z9IO_PACKET_CONTENT
+/** Maximum serialized length for ProtocolPassthru. */
+#define ProtocolPassthru_MAX_SERIALIZED_LEN 1030
+#else
+// excluded: EncryptedContent
+// excluded: ProtocolPassthru
+// excluded: FileContents
+// excluded: ProtocolPassthruId
+/** Maximum serialized length for ProtocolPassthru. */
+#define ProtocolPassthru_MAX_SERIALIZED_LEN 1029
+#endif
+
+/** Discriminator which identifies this subtype (ProtocolPassthru) in a union. */
+#define ProtocolPassthru_DISCRIMINATOR 30
+
+#ifdef WITH_LARGE_Z9IO_PACKET_CONTENT
+/**
+ * Main structure for module: {@link ProtocolPassthru.h}.
+ */
+struct ProtocolPassthru
+{
+	struct PacketContent base;
+	enum ProtocolPassthruId protocolId;
+	int8_t numFragments;
+	int8_t fragmentIndex;
+	int16_t numBytes;
+	int8_t bytes[1024];
+};
+#endif
+
+/** Maximum serialized length for EncryptedContent. */
+#define EncryptedContent_MAX_SERIALIZED_LEN 1027
+
+/** Discriminator which identifies this subtype (EncryptedContent) in a union. */
+#define EncryptedContent_DISCRIMINATOR 35
+
+#ifdef WITH_LARGE_Z9IO_PACKET_CONTENT
+/**
+ * Main structure for module: {@link EncryptedContent.h}.
+ */
+struct EncryptedContent
+{
+	struct PacketContent base;
+	int16_t numBytes;
+	int8_t bytes[1024];
+};
+#endif
+
+/** Maximum serialized length for EncryptionKeyExchange. */
+#define EncryptionKeyExchange_MAX_SERIALIZED_LEN 19
+
+/** Discriminator which identifies this subtype (EncryptionKeyExchange) in a union. */
+#define EncryptionKeyExchange_DISCRIMINATOR 36
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.inout.EncryptedContent
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link EncryptionKeyExchange.h}.
  */
-class EncryptedContent : public PacketContent
+struct EncryptionKeyExchange
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 1027;
-	static const int8_t DISCRIMINATOR = 35;
-	// incorporated into subsequent variableArray: int16_t numBytes;
-	variableArray<1024, int16_t, int8_t> bytes;
-
+	struct PacketContent base;
+	enum EncryptionKeyExchangeType type;
+	int8_t numBytes;
+	int8_t bytes[16];
 };
 
+/** Maximum serialized length for ApplicationEncryptionKeyExchange. */
+#define ApplicationEncryptionKeyExchange_MAX_SERIALIZED_LEN 36
+
+/** Discriminator which identifies this subtype (ApplicationEncryptionKeyExchange) in a union. */
+#define ApplicationEncryptionKeyExchange_DISCRIMINATOR 37
 
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.inout.EncryptionKeyExchange
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link ApplicationEncryptionKeyExchange.h}.
  */
-class EncryptionKeyExchange : public PacketContent
+struct ApplicationEncryptionKeyExchange
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 19;
-	static const int8_t DISCRIMINATOR = 36;
-	EncryptionKeyExchangeType type;
-	// incorporated into subsequent variableArray: int8_t numBytes;
-	variableArray<16, int8_t, int8_t> bytes;
-
+	struct PacketContent base;
+	enum ApplicationEncryptionKeyExchangeType type;
+	int8_t numBytes;
+	int8_t bytes[33];
 };
 
+#ifdef WITH_LARGE_Z9IO_PACKET_CONTENT
+/** Maximum serialized length for Packet. */
+#define Packet_MAX_SERIALIZED_LEN 1041
+#else
+// excluded: EncryptedContent
+// excluded: ProtocolPassthru
+// excluded: FileContents
+// excluded: ProtocolPassthruId
+/** Maximum serialized length for Packet. */
+#define Packet_MAX_SERIALIZED_LEN 62
+#endif
 
+static const int8_t Packet_headerByte = 127;
 /**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.inout.ApplicationEncryptionKeyExchange
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
+ * Main structure for module: {@link Packet.h}.
  */
-class ApplicationEncryptionKeyExchange : public PacketContent
+struct Packet
 {
-public:
-	static const int MAX_SERIALIZED_LEN = 68;
-	static const int8_t DISCRIMINATOR = 37;
-	ApplicationEncryptionKeyExchangeType type;
-	// incorporated into subsequent variableArray: int8_t numBytes;
-	variableArray<65, int8_t, int8_t> bytes;
-
-};
-
-
-/**
- * Auto-generated from Java class: z9.drivers.z9io.io.protocol.Packet
- *
- * See the Javadoc for more information.
- *
- * @author Z9 Security (code generator) 
- */
-class Packet
-{
-public:
-	static const int MAX_SERIALIZED_LEN = 1041;
-	static const int8_t headerByte = 127;
 	int16_t bytecount;
 	int8_t address;
 	int8_t seqno;
 	union
 	{
-		RawRead uRawRead;
-		RawWrite uRawWrite;
-		DigitalWrite uDigitalWrite;
-		DigitalRead uDigitalRead;
-		TemperatureRead uTemperatureRead;
-		SerialWrite uSerialWrite;
-		BoardInfo uBoardInfo;
-		Hello uHello;
-		AnalogRead uAnalogRead;
-		Config uConfig;
-		FileQuery uFileQuery;
-		FileContents uFileContents;
-		BoardStatusQuery uBoardStatusQuery;
-		BoardStatus uBoardStatus;
-		Ping uPing;
-		Pong uPong;
-		AnalogInConfig uAnalogInConfig;
-		DigitalInConfig uDigitalInConfig;
-		RawKey uRawKey;
-		DisplayWrite uDisplayWrite;
-		Ack uAck;
-		Nak uNak;
-		RawKeys uRawKeys;
-		UserIdRead uUserIdRead;
-		ReaderState uReaderState;
-		ReaderStatus uReaderStatus;
-		Poll uPoll;
-		HostInfo uHostInfo;
-		HostStatus uHostStatus;
-		FileAvailable uFileAvailable;
-		ProcessFile uProcessFile;
-		EncryptedContent uEncryptedContent;
-		EncryptionKeyExchange uEncryptionKeyExchange;
-		ApplicationEncryptionKeyExchange uApplicationEncryptionKeyExchange;
+		struct RawRead uRawRead;
+		struct RawWrite uRawWrite;
+		struct DigitalWrite uDigitalWrite;
+		struct DigitalRead uDigitalRead;
+		struct TemperatureRead uTemperatureRead;
+		struct SerialWrite uSerialWrite;
+		struct BoardInfo uBoardInfo;
+		struct Hello uHello;
+		struct AnalogRead uAnalogRead;
+		struct Config uConfig;
+		struct FileQuery uFileQuery;
+#ifdef WITH_LARGE_Z9IO_PACKET_CONTENT
+		struct FileContents uFileContents;
+#endif
+		struct BoardStatusQuery uBoardStatusQuery;
+		struct BoardStatus uBoardStatus;
+		struct Ping uPing;
+		struct Pong uPong;
+		struct AnalogInConfig uAnalogInConfig;
+		struct DigitalInConfig uDigitalInConfig;
+		struct RawKey uRawKey;
+		struct DisplayWrite uDisplayWrite;
+		struct Ack uAck;
+		struct Nak uNak;
+		struct RawKeys uRawKeys;
+		struct UserIdRead uUserIdRead;
+		struct ReaderState uReaderState;
+		struct ReaderStatus uReaderStatus;
+		struct Poll uPoll;
+#ifdef WITH_LARGE_Z9IO_PACKET_CONTENT
+		struct ProtocolPassthru uProtocolPassthru;
+#endif
+		struct HostInfo uHostInfo;
+		struct HostStatus uHostStatus;
+		struct FileAvailable uFileAvailable;
+		struct ProcessFile uProcessFile;
+#ifdef WITH_LARGE_Z9IO_PACKET_CONTENT
+		struct EncryptedContent uEncryptedContent;
+#endif
+		struct EncryptionKeyExchange uEncryptionKeyExchange;
+		struct ApplicationEncryptionKeyExchange uApplicationEncryptionKeyExchange;
 	} content;
 	int16_t crc16;
-
 };
+
+#ifdef __cplusplus
+}
+#endif
 

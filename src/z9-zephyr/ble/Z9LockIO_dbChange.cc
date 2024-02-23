@@ -13,29 +13,27 @@ using namespace z9;
 using namespace z9::protocols;
 using z9::protocols::z9lockio::getFormatter;
 
-static void z9lockio_gen_challenge(void *arg);
+static void z9lock_gen_db_resp(uint64_t const& requestID);
 
 void Z9LockIO_dbChange(KCB& kcb, uint8_t encrypted)
 {
     uint8_t buf[sizeof(uint64_t)];
     auto requestID = read64(buf);
-    printk("%s: Processing LockDbChange_Config: " PRIx64 "\n", __func__, requestID);
-    //z9lock_gen_db_resp(requestID);
+    printk("%s: Processing LockDbChange_Config: %" PRIx64 "\n", __func__, requestID);
+    z9lock_gen_db_resp(requestID);
 }
 
 // validate 
-#if 0
-static void z9lockio_gen_challenge(void *arg)
+static void z9lock_gen_db_resp(uint64_t const& requestID)
 {
-    static uint8_t buf[100];
+    static constexpr auto discriminator = LockDbChangeResp::DISCRIMINATOR;
+    uint8_t buf[sizeof(uint64_t)];
 
-    auto kcb = z9lockio_create_bundle_header(0);
-    LockMobileBleChallengeNonce::DISCRIMINATOR;
-    sizeof(ble_challenge);
-    std::memcpy(p, ble_challenge, sizeof(ble_challenge));
-    p += sizeof(ble_challenge);
+    // packet is encrypted & to NOC
+    auto& kcb = *Z9LockIO_createBundleHeader(discriminator);
+    write64(buf, requestID);
+    kcb.load(buf, sizeof(requestID));
+    kcb.write(0).write(0);          // error code
     
-    printk("%s: challenge length = %u\n", __func__, len);
-    z9lockio_send_bundle(kcb, headersize, 2);
+    Z9LockIO_sendBundle(kcb);
 }
-#endif

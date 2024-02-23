@@ -27,6 +27,8 @@ manifest:
       url-base: https://github.com/BabbleSim
     - name: z9-lock
       url-base: https://bitbucket.org/z9security
+    - name: z9-kent
+      url-base: git@github.com:z9Kent
 
   group-filter: [-babblesim, -optional]
 
@@ -40,6 +42,11 @@ manifest:
     - name: meta
       remote: meta
       path: modules/meta
+    - name: hal_atmel
+      remote: z9-kent 
+      path: modules/hal/atmel
+      groups:
+        - hal
+
   self:
     path: manifest-repo
-

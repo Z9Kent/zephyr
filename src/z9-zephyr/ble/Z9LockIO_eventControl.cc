@@ -6,14 +6,13 @@
 #include "ProtocolMetadata.h"
 #include "Z9Serialize.h"
 #include "variableArray.h"
-//#include "Z9LockIOProtocol_Serialize.cc"
-#include "Z9LockIO_eventControl.h"
+#include "Z9LockIO_protocol.h"
 
 using namespace z9;
 using namespace z9::protocols;
 using z9::protocols::z9lockio::getFormatter;
 
-static void z9lockio_gen_challenge(void *arg);
+static void Z9LockIO_gen_evt_batch(bool priority);
 
 void Z9LockIO_eventControl(KCB& kcb, uint8_t key)
 {
@@ -29,8 +28,33 @@ void Z9LockIO_eventControl(KCB& kcb, uint8_t key)
 
     if (p->consume.start.evtCode)
         LockEventDb::instance().consume(p->priority, p->consume.start, p->consume.stop);
-#if 0
+
     if (p->sendOneBatch)
-        z9lock_gen_evt_batch(p->priority);
- #endif
+        Z9LockIO_gen_evt_batch(p->priority);
+}
+
+static void Z9LockIO_gen_evt_batch(bool priority)
+{
+    static constexpr auto discriminator = LockEvtBatch::DISCRIMINATOR;
+    static constexpr auto maxEvents     = 32;
+
+    // packet is encrypted & to NOC
+    auto& kcb = *Z9LockIO_createBundleHeader(discriminator);
+    kcb.write(priority);
+    
+    // remember offset of next: will need to update
+    kcb.write(0);       // count of events (to be updated)
+    //auto countOffset = kcb.curPos();
+    auto countOffset = kcb.size();
+
+    auto writer =[&kcb](uint8_t c) { kcb.write(c); };
+    auto count = LockEventDb::instance().extract(priority, maxEvents, writer);
+    if (count == 0)
+        delete &kcb;
+    else
+    {
+        //kcb.seek(countOffset);
+        //kcb.poke(count);
+        Z9LockIO_sendBundle(kcb);
+    }
 }

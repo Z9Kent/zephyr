@@ -39,7 +39,7 @@ void Z9LockIO_opaqueContent(KCB& kcb, uint8_t key)
     }
 
     printk("%s: Processing OpaqueContent %u bytes using key: %s\n", __func__, kcb.length(), keyName);
-    printk("%s: CurrentPosition = %u\n", __func__, kcb.curPos());
+    //printk("%s: CurrentPosition = %u\n", __func__, kcb.curPos());
     
     // "count" is first two bytes -- ignore & assume to end of KCB
     kcb.skip(2);

@@ -89,6 +89,8 @@ struct LockEventFs
             fcb_clear(&file);
     }
 
+    LockEventFs() {}
+
     // put item in FS directly
     void write(LockEventFsItem const& evt);
 

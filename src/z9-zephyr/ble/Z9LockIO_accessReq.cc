@@ -29,7 +29,7 @@ void Z9LockIO_accessReq(KCB& kcb, uint8_t encrypted)
     kcb.readN(buf, sizeof(uint64_t));
     auto mobileID = read64(buf);
 
-    printk("AccessReq: ID=%04x, mobile=" PRIu64 "\n", requestID, mobileID);
+    printk("AccessReq: ID=%04" PRIx32 ", mobile=%" PRIu64 "\n", requestID, mobileID);
 
     LockEvtCode result = LockEvtCode_DOOR_ACCESS_GRANTED;
     if (privacy_state)

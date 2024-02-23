@@ -2,7 +2,9 @@
 #include "Eros_protocol.h"
 #include "z9lockio_ble.h"
 #include "Z9LockIOProtocol_Current.h"
-#include "Z9LockIO_bundleHeader.h"
+#include "Z9LockIO_protocol.h"
+#include "Z9Crypto_gcm_KCB.h"
+#include "Settings.h"       // noc_key_handle
 
 #include "ProtocolMetadata.h"
 #include "Z9Serialize.h"
@@ -46,36 +48,71 @@ void Z9LockIO_bundleHeader(KCB& kcb, uint8_t key)
         p->originId, p->destinationId, p->opaque, p->packetCount);
 }    
 
-// create an outgoing "LockBundleHeader" optionally followed by an "OpaqueContent" and a 
+// create an outgoing message that will have a bundle header prepended before transmsission.
 // second LockBundleHeader. Fixup counts, etc, in `Z9LockIO_sendBundle()`
-KCB& Z9LockIO_createBundleHeader(uint8_t discriminator, bool opaque, bool toIntermediate, uint8_t count)
+KCB *Z9LockIO_createBundleHeader(uint8_t discriminator, bool opaque, bool toIntermediate, uint8_t count)
 {
     // XXX examine "alignment" to see if anything falls out...
-    static constexpr auto headerRoom = 10;      // Z9IO header requirements (none required for Eros)
-    auto& kcb = *KCB_NEW(headerRoom); 
+    static constexpr auto z9ioHeaderSize  = 10;      // Z9IO header requirements (none required for Eros)
+    static constexpr auto clearHeaderSize =  2 * packetSerializedLen + bundleSerializedLen;
+    static constexpr auto opaqueHeaderSize = 3 * packetSerializedLen + 
+                                             2 * bundleSerializedLen +
+                                             1 * opaqueSerializedLen;
 
-    // For serialize: need writer
-    using T = LockBundleHeader;
-    auto proto = getFormatter<T>();
-    auto writer = [&kcb](uint8_t c) { kcb.write(c); };
-#if 0 
-    // deserialize right into `lastHeader`
-    auto p = &lastHeader;
-    proto->deserialize(reader, static_cast<uint8_t *>((void *)p), sizeof(T), sizeof(T));
-#endif
+    // validate headers all fit in KCB base page
+    static_assert((opaqueHeaderSize + z9ioHeaderSize + packetSerializedLen) 
+                    < (sizeof(KernelBuffer) + sizeof(kcb)),
+                "Header won't fit in KCB base page");
+    
+    // select appropriate headroom in KCB
+    auto headRoom = z9ioHeaderSize + packetSerializedLen + 
+                        (opaque ? opaqueHeaderSize : clearHeaderSize);
 
-    // Add Z9LockIO protocol header (discriminator + size)
-    auto addPacketHeader = [&kcb](uint8_t discriminator, uint16_t length = 0)
+    // preferences stored in KCB
+    static constexpr auto preferencesSize = 4;
+    auto& kcb = *KCB_NEW(headRoom - preferencesSize); 
+
+    // record preferences
+    kcb.write(discriminator).write(opaque);
+    kcb.write(toIntermediate).write(count);
+
+    // fixup in `sendBundle()`
+    return &kcb;
+}
+
+// fill in bundle header sizes, encrypt as required, and send onward
+void Z9LockIO_sendBundle(KCB& kcb)
+{
+    auto prependPacketHeader = [&kcb](uint8_t discriminator, uint16_t len)
         {
-            length += packetSerializedLen;
-            kcb.write('z').write('9');
-            kcb.write(length >> 8).write(length);
-            kcb.write(discriminator);
+            auto p = kcb.allocHeadroom(packetSerializedLen);
+            len += packetSerializedLen;
+            *p++ = 'z';
+            *p++ = '9';
+            *p++ = len >> 8;
+            *p++ = len;
+            *p   = discriminator;
         };
 
-    // start by swapping addresses in header
-    LockBundleHeader bundle = lastHeader, *p = &bundle;
+    auto prependBundleHeader = [&kcb, &prependPacketHeader](LockBundleHeader const& hdr)
+        {
+            auto p = kcb.allocHeadroom(bundleSerializedLen);
+            auto proto = getFormatter<LockBundleHeader>();
+            auto writer = [&p](uint8_t c) { *p++ = c; };
+            const void *v = &hdr;
+            proto->serialize(writer, (uint8_t const *)v, bundleSerializedLen, bundleSerializedLen);
+            prependPacketHeader(LockBundleHeader::DISCRIMINATOR, bundleSerializedLen);
+        };
 
+    // first retrieve preferences stored at creation
+    auto discriminator  = kcb.pop();
+    auto opaque         = kcb.pop();
+    auto toIntermediate = kcb.pop();
+    auto count          = kcb.pop();
+
+    // prepare the (unencrypted) bundle header
+    auto hdr = lastHeader, *p = &hdr;
+    
     // swap source & destination
     std::swap(p->origin  , p->destination);
     std::swap(p->originId, p->destinationId);
@@ -89,69 +126,58 @@ KCB& Z9LockIO_createBundleHeader(uint8_t discriminator, bool opaque, bool toInte
         p->intermediaryId = {};
     }
 
-    p->opaque = opaque;
-    p->packetCount = opaque ? 1 : count;    // should this be 1 for opaqueContent
+    p->opaque = {};             // this is clear header
+    p->packetCount = count;     // should this be 1 for opaqueContent
 
-    // write first LockBundleHeader packet
-    addPacketHeader(LockBundleHeader::DISCRIMINATOR, bundleSerializedLen);
-    // XXX needs to be "seralize" routine
-    kcb.load(p, bundleSerializedLen);
 
-    // if packet is opaque, add more headers
+    // prepend packet header + bundle header
+    prependPacketHeader(discriminator, kcb.size());
+    prependBundleHeader(*p);
+
+    // if encryption requested, now's the time
     if (opaque)
     {
-        // need to add room for LockOpaqueContent + second LockBundleHeader
-        addPacketHeader(LockOpaqueContent::DISCRIMINATOR);
-        kcb.load(p, opaqueSerializedLen);   // NB: unitialized data that will be overwritten
-        p->opaque = {};             // embedded packets are not encrypted
-        p->packetCount = count;
-        addPacketHeader(LockBundleHeader::DISCRIMINATOR, bundleSerializedLen);
+        // select key based on destination
+        psa_key_handle_t *key_p {};
+        const char *keyName = "UNKNOWN KEY";
+        switch (p->destination)
+        {
+            case LockIdentificationType_AUTHORITATIVE_SOURCE:
+                key_p = &noc_key_handle;
+                keyName = "NOC";
+                break;
+            case LockIdentificationType_MOBILE:
+                key_p = &mobile_key_handle;
+                keyName = "MOBILE";
+                break;
+            case LockIdentificationType_HUB_CONTROLLER:
+            case LockIdentificationType_LOCK:
+            case LockIdentificationType_NONE:
+            default:
+                break;
+        }
+
+        auto len = kcb.size();              // encrypt rest of buffer
+        printk("%s: Encrypting %u bytes using key: %s\n", __func__, len, keyName);
+
+        // routine encrypts and prepends IV + TAG 
+        Z9Crypto_gcm_encrypt_KCB(*key_p, kcb); 
+        kcb.push(len).push(len >> 8);       // also need "length"
+        prependPacketHeader(LockOpaqueContent::DISCRIMINATOR, len + opaqueSerializedLen);
+
+        // mark "initial" bundle header as opaque with count of 1
+        p->opaque = true;
+        p->packetCount = 1;
     
-        // XXX needs to be "seralize" routine
-        kcb.load(p, bundleSerializedLen);
-    }
-
-    // add new header for actual DISCRIMINATOR
-    addPacketHeader(discriminator);
-    return kcb;
-}
-
-// fill in bundle header sizes, encrypt as required, and send onward
-void Z9LockIO_sendBundle(KCB& kcb)
-{
-    // see if opaque: if so, we need to encrypt
-    kcb.top().seek(packetSerializedLen + bundleSerializedOpaqueOffset);
-    auto isOpaque = kcb.peek();
-
-    // if clear, just need to set second packet length
-    static constexpr auto firstPacketLen  = packetSerializedLen + bundleSerializedLen;
-    auto secondPacketLen = kcb.size() - firstPacketLen;
-    kdb.seek(firstPacketLen + packetSerializedLenOffset);
-    kcb.put(secondPacketLen >> 8).put(secondPacketLen);
-    
-    // if opaque, need to set final packet length, as well as encrypted length
-    if (isOpaque)
-    {
-        // choose encryption based on destination
-        kcb.seek(packetSerializedLen + bundleSerializedDestOffset);
-        auto dest = kcb.peek();
-
-        // assume data format after initial bundle header is OpaqueContent, BundleHeader, BusinessPacket
-        auto businessPacketOffset = (packetSerializedLen * 3) + 
-                                    (bundleSerializedLen * 2) +
-                                     opaqueSerializedLen;
-        auto businessPacketLen = kcb.size() - businessPacketOffset;
-        kcb.seek(businessPacketOffset + packetSerializedLen);
-        kcb.put(businessPacketLen >> 8).put(businessPacketLen);
-
-        // now store encrypted packet length
-        auto encryptedBytes = secondPacketLen - (packetSerializedLen + opaqueSerializedLen);
-        kcb.seek(firstPacketLen + packetSerializedLen);
-        kcb.put(encryptedBytes >> 8).put(encryptedBytes);
-
-        // now encrypt. Conventiently KCB positioned at IV, so just pass to KCB encrypt
-        GcmCrypto_encrypt_KCB(key, kcb);
+        // prepend final pack header & send
+        prependBundleHeader(*p);
     }
 
     // packet send...
+    int n = kcb.top().size();
+    printk("%s: %2d bytes: ", __func__, n);
+    if (n < 0)
+        n = 50;
+    while (n--) printk("%02x", kcb.read());
+    printk("\n");
 }
