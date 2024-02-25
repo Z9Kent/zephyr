@@ -10,6 +10,7 @@
 #include "Z9Serialize.h"
 #include "variableArray.h"
 //#include "Z9LockIOProtocol_Serialize.cc"
+#include "Z9IO_Logic.h"
 
 using namespace z9;
 using namespace z9::protocols;
@@ -180,4 +181,6 @@ void Z9LockIO_sendBundle(KCB& kcb)
         n = 50;
     while (n--) printk("%02x", kcb.read());
     printk("\n");
+
+    send_passThru(kcb);
 }

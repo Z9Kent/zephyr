@@ -503,4 +503,6 @@ void z9lockio_recv(KCB& kcb)
 
         }   // switch
     }       // while
+    delete &kcb;        // release buffer
 }           // function
+

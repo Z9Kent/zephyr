@@ -86,6 +86,8 @@ KCB& gen_key_exchange(uint8_t& seq_number, bool is_linked)
 
     uint8_t data[18] = { (uint8_t)(is_linked * 2), 16 };
     memcpy(&data[2], local_seed, sizeof(local_seed));
+    
+    LOG_INF("%s: Sending key: %u", __func__, data[0]);
     return gen_message(seq_number, EncryptionKeyExchange_DISCRIMINATOR, sizeof(data), data);
 }
 
@@ -167,10 +169,17 @@ void Z9IO_Link::xmit_fsm_loop()
 
         // after hello, perform key exchange
         case LS_KEY_XCHANGE_PEND:
-            if (!key_isSet(session_key))
+            // must set xmit_kcb so "idle not set"
+            if (ack_pending)
+            {
+                xmit_kcb = &gen_poll(seq_number);
+                ack_pending = false;
+            }
+            else if (!key_isSet(session_key))
             {
                 bool is_linked = key_isSet(link_key);
                 xmit_kcb = &gen_key_exchange(seq_number, is_linked);
+                ack_pending = true;
             }
             break;
 
@@ -188,12 +197,19 @@ void Z9IO_Link::xmit_fsm_loop()
         state = LS_IDLE;
 
     // if no initialization message pending, grab first off queue
-    if (!xmit_kcb)
+    if (!ack_pending && !xmit_kcb)
+    {
         xmit_kcb = queue_pop(&xmit_queue);
-    
+        ack_pending = true;
+    }
+
     // if no message pending, generate a POLL
     if (!xmit_kcb)
+    {
         xmit_kcb = &gen_poll(seq_number);
+        ack_pending = false;
+    }
+    
 
     // XXX eventually calculate CRC & push header
     xmit_kcb->push(++seq_number);
@@ -205,7 +221,7 @@ void Z9IO_Link::xmit_fsm_loop()
 
 
 // entrypoints returning from device driver
-#define Z9IO_RX_TIMEOUT 1000
+#define Z9IO_RX_TIMEOUT 5000
 
 void Z9IO_Link::xmit_return(KCB& kcb)
 {
@@ -324,6 +340,7 @@ void Z9IO_Link::recv_keyexchange(KCB& kcb)
     // read data from buffer
     /* auto cmd      = */ kcb.read();
     auto response = kcb.read();
+    LOG_INF("%s: Receiving key: %u", __func__, response);
     uint8_t remote_seed[16], *p = remote_seed;
 
     kcb.read();     // skip length
@@ -394,7 +411,7 @@ void Z9IO_Link::xmit_trampoline(struct k_work *cb)
 
 void Z9IO_Link::recv_trampoline(struct k_work *cb)
 {
-	LOG_INF("%s", __func__);
+	//LOG_INF("%s", __func__);
     
     // static function: get instance
     auto self = CONTAINER_OF(cb, Z9IO_Link, recv_work);

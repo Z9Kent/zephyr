@@ -98,12 +98,30 @@ static z9_ble_callbacks cb
 
 void z9lock_ble_init()
 {
+    static bool inited;
     // init ble driver
-    z9_ble_init(&cb, NULL);
+    if (!inited)
+        z9_ble_init(&cb, NULL);
+    inited = true;
 }
 
-void z9lock_ble_update_advertising(const Z9Lock_status &lock)
+void z9lock_ble_set_sn(uint64_t const& sn)
 {
+    z9lock_ble_init();
+    z9lock_status.lockID = sn;
+}
+void z9lock_ble_update_advertising(uint8_t pairing
+                                , bool tamper
+                                , bool lowBattery
+                                , bool syncRequested)
+{
+    auto& lock = z9lock_status;
+
+    z9lock_status.mode = static_cast<LockStatusMode>(pairing);
+    z9lock_status.sync_req = syncRequested;
+    z9lock_status.battery_low = lowBattery;
+    z9lock_status.tamper = tamper;
+   
     z9_ble_set_SN(&lock.lockID);
     auto [name, len] = lock.encode();
     z9_ble_set_name(name, len);

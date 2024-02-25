@@ -10,6 +10,7 @@
 #include <array>
 #include <cstdint>
 
+#include "Z9Lock_status.h"
 
 struct Z9IO_Logic
 {
@@ -21,7 +22,7 @@ struct Z9IO_Logic
 
 private:
     static void recv_fn(struct k_work *);
-    void process_recv(KCB&);
+    bool process_recv(KCB&);        // true if buffer consumed
 
     uint8_t _unit;
 
@@ -32,3 +33,11 @@ private:
     static inline std::array<Z9IO_Logic *, NUM_Z9IO_LINK> pInstances;
 
 };
+
+void send_hostInfo(uint64_t sn);
+void send_hostStatus(Z9Lock_status const&);
+void send_passThru(KCB& );
+
+// declare passthru destinations
+void z9lockio_recv(KCB&);
+void eros_send(KCB&);

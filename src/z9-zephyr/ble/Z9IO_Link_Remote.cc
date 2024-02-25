@@ -208,8 +208,10 @@ void Z9IO_Link::xmit_fsm_loop()
         // after hello, perform key exchange
         case LS_KEY_XCHANGE_PEND:
             {
-                bool is_linked = key_isSet(link_key);
+                bool is_linked = key_isSet(session_key);
                 xmit_kcb = &gen_key_exchange(seq_number, is_linked, CONFIG_Z9_READER);
+                if (is_linked)
+                    state = LS_IDLE;
             }
             break;
 
@@ -320,6 +322,8 @@ bool Z9IO_Link::recv_return(KCB& kcb)
                 break;
             case LS_KEY_XCHANGE_PEND:
             case LS_KEY_XCHANGE_WAIT:
+                if (cmd == Poll_DISCRIMINATOR)
+                    break;
                 if (cmd != EncryptionKeyExchange_DISCRIMINATOR)
                     cmd = NULL_DISCRIMINATOR;
                 break;
@@ -398,7 +402,6 @@ void Z9IO_Link::recv_keyexchange(KCB& kcb)
         case EncryptionKeyExchangeType_LINK_SESSION_SEED_RESP:
             key_set(session_key, link_key);
             key_ptr = session_key;
-            state = LS_INIT;        // cause FSM to resend hello
             break;
 
         default:
@@ -418,7 +421,7 @@ void Z9IO_Link::recv_keyexchange(KCB& kcb)
     {
         key_set(gcm_key, session_key);
         LOG_HEXDUMP_INF(gcm_key, 16, "GCM_KEY:");
-        psa_link_key = Z9Crypto_setKey(gcm_key, sizeof(gcm_key));
+        auto result = Z9Crypto_gcmSetKey(psa_link_key, gcm_key, sizeof(gcm_key));
     }
 }
 

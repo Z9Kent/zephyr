@@ -1,11 +1,12 @@
 
 #include "Eros_protocol.h"
 #include "z9lockio_ble.h"
-#include "Z9LockIO_protocol.h"
+//#include "Z9LockIO_protocol.h"
 #include "Z9LockIOProtocol_Current.h"
 #include "Z9Crypto.h"
-#include "EventDb.h"
 #include "KernelCharacterBuffer.h"
+#include "Z9IO_Logic.h"
+#include "z9_ble_driver.h"
 
 #include <cstring>
 #include <zephyr/kernel.h>
@@ -121,9 +122,13 @@ void eros_ble_recv(bt_conn *conn, const void *buf_v, uint16_t buf_len)
     }
 
     // put message in a KCB
-    auto& kcb = *KCB_NEW(10);        // Z9IO headroom
+    auto& kcb = *KCB_NEW(16);        // Z9IO headroom
     while (len--) kcb.write(*buf++);
+#ifndef CONFIG_Z9_READER
     z9lockio_recv(kcb.top());
+#else
+    send_passThru(kcb);
+#endif
 }
     
 static constexpr auto z9_bundle_header_len = 41;
@@ -150,5 +155,16 @@ void eros_passthru_send(uint8_t passthru_id, uint8_t *buf, uint8_t len)
     *--buf = 0x0b;
     *--buf = 0x82;
     lock_service_send(eros_conn, buf, len + 4);
-    LockEventDb::instance().dump();
+}
+
+void eros_send(KCB& kcb)
+{
+    static constexpr auto eros_headRoom = 12;
+    uint8_t buf[400];
+
+    auto *p = &buf[eros_headRoom];
+    auto first = p;
+    auto len = kcb.length();
+    while (len--) *p++ = kcb.read();
+    eros_passthru_send(1, first, p - first);
 }

@@ -7,6 +7,8 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/drivers/hwinfo.h>
 
+#include "Z9IO_Logic.h"
+
 // instantiate object
 Z9Lock_status z9lock_status;
 
@@ -45,9 +47,9 @@ void Z9Lock_status::set_mode(LockStatusMode new_mode)
 void Z9Lock_status::publish() const
 {
     // send to z9io or ble module
-#if CONFIG_Z9_READER
-    z9lock_ble_update_advertising(*this);
-#else
+#if CONFIG_Z9_CONTROLLER
+    send_hostInfo(lockID);
+    send_hostStatus(*this);
 #endif
 }
 

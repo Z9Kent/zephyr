@@ -3,7 +3,6 @@
 #include "z9lockio_ble.h"
 #include "Z9LockIOProtocol_Current.h"
 #include "Z9Crypto.h"
-#include "EventDb.h"
 #include "Settings.h"
 
 #include <cstring>

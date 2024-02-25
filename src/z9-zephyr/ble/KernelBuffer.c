@@ -62,6 +62,8 @@ z9_error_t KernelBuffer_free(struct KernelBuffer *buf)
     // validate count non-zero
     if (!pInfo->referenceCount)
         LOG_ERR("%s: zero referenceCount", __func__);
+    if (!pInfo->referenceCount)
+        KernelBuffer_dumpAllocs();
 
     // return to system if count reduced to zero
     if (!--pInfo->referenceCount)

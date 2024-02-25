@@ -33,7 +33,9 @@
 #include <zephyr/logging/log.h>
 #include <cstring>
 
-
+#ifdef CONFIG_Z9_READER
+#include "z9lockio_ble.h"       // process HostInfo, HostStatus
+#endif
 
 
 
@@ -95,6 +97,7 @@ static KCB& gen_message(uint8_t cmd, uint8_t count = 0, uint8_t *data = {})
     return kcb;
 }
 
+
 // generate responses
 KCB& gen_boardStatusQuery(Z9IO_Logic& p)
 {
@@ -141,6 +144,44 @@ KCB& gen_appKeyExchange  (Z9IO_Logic&, uint8_t type = 0, uint8_t length = 0, uin
     return gen_message(ApplicationEncryptionKeyExchange_DISCRIMINATOR, sizeof(data), data);
 }
 
+void send_hostInfo(uint64_t sn)
+{
+    uint8_t data[12] = {};
+    uint8_t *p = std::end(data);
+    for (unsigned n = 0; n++ < sizeof(sn); sn >>= 8)
+        *--p = sn;
+    Z9IO_Logic::get(0).send(gen_message(HostInfo_DISCRIMINATOR, sizeof(data), data));
+}
+void send_hostStatus(Z9Lock_status const& lock)
+{
+    uint8_t data[4] = { static_cast<uint8_t>(lock.mode),
+                         lock.tamper, lock.battery_low, lock.sync_req };
+    Z9IO_Logic::get(0).send(gen_message(HostStatus_DISCRIMINATOR, sizeof(data), data));
+}
+    
+void send_passThru(KCB& kcb)
+{
+#if 0
+    if (cmd == ProtocolPassthru_DISCRIMINATOR)
+    {
+        auto id = kcb.read();
+        auto fragments = kcb.read();    // starts at 1
+        auto frag_index = kcb.read();   // starts at zero
+        auto length     = kcb.read() << 8;
+             length    |= kcb.read();
+        if (id == 1)
+    }
+#endif
+    auto length = kcb.top().size();
+    uint8_t data[] = { ProtocolPassthru_DISCRIMINATOR, 1,
+                        1, 0,
+                        length >> 8, length,
+                    };
+    auto p = kcb.allocHeadroom(sizeof(data));
+    std::memcpy(p, data, sizeof(data));
+    Z9IO_Logic::get(0).send(kcb);
+}
+
 // ctor: activate logic
 Z9IO_Logic::Z9IO_Logic()
 {
@@ -160,7 +201,8 @@ Z9IO_Logic& Z9IO_Logic::get(unsigned ordinal)
     throw std::runtime_error{"Z9Logic::get: instance not initalized"};
 }
 
-void Z9IO_Logic::process_recv(KCB& kcb)
+// return true to delete KCB
+bool Z9IO_Logic::process_recv(KCB& kcb)
 {
     // first decrypt if was encrypted
     bool wasEncrypted = false;
@@ -170,7 +212,7 @@ void Z9IO_Logic::process_recv(KCB& kcb)
         if (auto result = Z9Crypto_gcm_decrypt_KCB(psa_link_key, kcb))
         {
             LOG_ERR("%s: Decryption failed: %s", __func__, result);
-            return;
+            return true;;
         }
         wasEncrypted = true;
     }
@@ -188,13 +230,18 @@ void Z9IO_Logic::process_recv(KCB& kcb)
         auto frag_index = kcb.read();   // starts at zero
         auto length     = kcb.read() << 8;
              length    |= kcb.read();
-#if 0
         if (id == 1)
-            process_z9lockio(kcb);
-        else
+        {
+#if CONFIG_Z9_CONTROLLER
+            z9lockio_recv(kcb);
+            return false;       // don't delete
+#else
+            eros_send(kcb);
 #endif
+        }
+        else
             LOG_ERR("%s: ProtocolPassthru: unknown protocol: %d", __func__, id);
-        return;
+        return true;
     }
 
     // process according to recived command
@@ -236,6 +283,7 @@ void Z9IO_Logic::process_recv(KCB& kcb)
 
             //send(gen_config(*this, input, output, analog));
             send(gen_appKeyExchange (*this, ApplicationEncryptionKeyExchangeType_PUBLIC_KEY_REQ));
+            z9lock_status.publish();
             break;
         }
 
@@ -323,10 +371,39 @@ void Z9IO_Logic::process_recv(KCB& kcb)
 
         case EncryptionKeyExchange_DISCRIMINATOR:
             // processed by link level
+
+#ifdef CONFIG_Z9_READER
+
+        case HostInfo_DISCRIMINATOR:
+        {
+            kcb.skip(4);
+            uint64_t sn{};
+            for (int i = 0; i++ < 8; )
+            {
+                sn <<= 8;
+                sn  += kcb.read();
+            }
+            z9lock_ble_set_sn(sn);
+            break;
+        }
+
+        case HostStatus_DISCRIMINATOR:
+        {
+            auto pairing = kcb.read();
+            auto tamper  = kcb.read();
+            auto lowBatt = kcb.read();
+            auto syncReq = kcb.read();
+            z9lock_ble_update_advertising(pairing, tamper, lowBatt, syncReq);
+            break;
+        }
+#endif
+
+
         default: 
             LOG_ERR("%s: Unexpected packet: cmd=%u, len=%u", __func__, cmd, kcb.length());
             break;
     }
+    return true;        // delete buffer
 }
 
 
@@ -356,7 +433,7 @@ void Z9IO_Logic::recv_fn(struct k_work *w)
     {
         auto c_kcb  = CONTAINER_OF(node_p, kcb_t, queue[0]);
         auto kcb_p  = reinterpret_cast<KCB *>(c_kcb);
-        self->process_recv(*kcb_p);
-        delete kcb_p;
+        if (self->process_recv(*kcb_p))
+            delete kcb_p;
     }
 }

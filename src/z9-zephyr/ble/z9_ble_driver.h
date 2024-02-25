@@ -45,6 +45,8 @@ void z9_ble_init(struct z9_ble_callbacks const *callbacks, void *cb_arg);
 void z9_ble_set_SN(const uint64_t *sn);
 void z9_ble_set_name(const uint8_t *name, uint16_t nameLen);
 
+void lock_service_send(struct bt_conn *conn, const uint8_t *data, uint16_t len);
+
 
 
 #ifdef __cplusplus

@@ -97,6 +97,17 @@ z9_error_t kcb_free(kcb_t *kcb)
     return KernelBuffer_free((struct KernelBuffer *)kcb);
 }
 
+z9_error_t kcb_link(kcb_t *kcb)
+{
+   KernelBuffer_addReference((struct KernelBuffer *)kcb);
+   return 0;
+}
+
+uint8_t kcb_getLinks(kcb_t *kcb)
+{
+   return KernelBuffer_getReferences((struct KernelBuffer *)kcb);
+}
+
 uint16_t kcb_ident(kcb_t *kcb)
 {
     return kcb ? KernelBuffer_getId((void *)kcb) : ~0;

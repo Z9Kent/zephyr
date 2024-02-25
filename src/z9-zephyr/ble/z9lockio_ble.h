@@ -26,7 +26,6 @@
 
 // Declare interface
 void z9lock_ble_init();
-void z9lock_ble_update_advertising(const Z9Lock_status &lock);
-
-void lock_service_send(struct bt_conn *conn, const uint8_t *data, uint16_t len);
+void z9lock_ble_set_sn(uint64_t const&);
+void z9lock_ble_update_advertising(uint8_t pairing, bool tamper, bool lowBattery, bool syncRequested);
 

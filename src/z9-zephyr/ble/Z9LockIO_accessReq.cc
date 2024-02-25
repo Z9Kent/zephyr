@@ -12,8 +12,7 @@ using namespace z9;
 using namespace z9::protocols;
 using z9::protocols::z9lockio::getFormatter;
 
-static void Z9LockIO_accessReq_rsp(const uint8_t *key, uint16_t keyLength);
-
+static void z9lockio_gen_accessReq_rsp(uint16_t requestID, LockEvtCode result);
 void Z9LockIO_accessReq(KCB& kcb, uint8_t encrypted)
 {
     extern bool privacy_state;
@@ -37,11 +36,11 @@ void Z9LockIO_accessReq(KCB& kcb, uint8_t encrypted)
     else if (!schedMask)
         result = LockEvtCode_DOOR_ACCESS_DENIED_INACTIVE;
 
-    //z9lockio_gen_access_rsp(result);
+    z9lockio_gen_accessReq_rsp(requestID, result);
 }
 
-#if 0
-static void z9lockio_accessReq_rsp(LockEvtCode result)
+
+static void z9lockio_gen_accessReq_rsp(uint16_t requestID, LockEvtCode result)
 {
     // generate an event
     auto evt  = EVT(result, mobileGrant);
@@ -50,18 +49,16 @@ static void z9lockio_accessReq_rsp(LockEvtCode result)
             .credUnid       = unid };
     LockEventDb::instance().save(evt, xtra);
 
-    // KCB prepared for protocol data
-    auto kcb = z9lockio_create_bundle_header(2);
-    kcb.put(LockAccessResp::DISCRIMINATOR);
-    kcb.put(requestID >> 8);
-    kcb.put(requestID);
+    // defaults work: encrypted back to sender
+    static constexpr auto discriminator = LockMobileBleChallengeNonce::DISCRIMINATOR;
+    auto& kcb = *Z9LockIO_createBundleHeader(discriminator);
+    
+    kcb.write(requestID >> 8);
+    kcb.write(requestID);
     
     auto error = 0;
-    kcb.put(error >> 8);
-    kcb.put(error)
-    kcb.put(result == LockEvtCode_DOOR_ACCESS_GRANTED);
-    
-    printk("%s: rsp length = %u\n", __func__, len);
-    z9lockio_send_bundle(kcb, headersize, 2);
+    kcb.write(error >> 8);
+    kcb.write(error);
+    kcb.write(result == LockEvtCode_DOOR_ACCESS_GRANTED);
+    Z9LockIO_sendBundle(kcb);
 }
-#endif

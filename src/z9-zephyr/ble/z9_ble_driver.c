@@ -243,14 +243,14 @@ static ssize_t on_receive(struct bt_conn *conn,
 			  uint8_t flags)
 {
     uint8_t const *buffer = buf;
-
+#if 0
 	printk("Received data: handle %d, conn %p, len: %u, data: 0x", attr->handle, conn, len);
     for(uint8_t i = 0; i < len; i++){
         printk("%02X", buffer[i]);
     }
     printk("\n");
     printk("Received data: offset=%d (0x%04x), flags=0x%02x\n", offset, offset, flags);
-
+#endif
     printk("%s: cb.recv_cb = %p\n", __func__, cb.recv_cb);
     if (cb.recv_cb)
         cb.recv_cb(cb_arg, conn, buf, len);
@@ -361,12 +361,13 @@ given that the Client Characteristic Control Descripter has been set to Notify (
 It also calls the on_sent() callback if successful*/
 void lock_service_send(struct bt_conn *conn, const uint8_t *data, uint16_t len)
 {
+#if 0
 	printk("Sending data: conn %p, len: %u, data: 0x", conn, len);
     for(uint8_t i = 0; i < len; i++){
         printk("%02X", data[i]);
     }
     printk("\n");
- 
+ #endif
     /* 
     The attribute for the TX characteristic is used with bt_gatt_is_subscribed 
     to check whether notification has been enabled by the peer or not.
