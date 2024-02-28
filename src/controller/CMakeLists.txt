@@ -4,6 +4,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(z9-lock)
 include_directories(SYSTEM ../modules/meta/include)
+include_directories(SYSTEM ../modules/crypto/mbedtls/configs)
 include_directories(../z9-zephyr/ble)
 target_sources(app PRIVATE src/main.cc)
 target_sources(app PRIVATE src/button.c)

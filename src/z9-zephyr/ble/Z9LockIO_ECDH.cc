@@ -10,7 +10,7 @@
 
 #include <psa/crypto.h>
 #include <psa/crypto_extra.h>
-#include "mbedtls/sha256.h"
+//#include "mbedtls/sha256.h"
 
 #include "ProtocolMetadata.h"
 #include "Z9Serialize.h"
@@ -20,7 +20,6 @@
 void Z9LockIO_performECDH(void *arg, ECDH_rsp_fn fn, cosnt uint8_t *nocPublic, uint16_t keyLength)
 {
     
-}
 #if 0
 
     // since we only save our public key, see if NOC sent same pulic key. If so we respond with
@@ -41,9 +40,9 @@ void Z9LockIO_performECDH(void *arg, ECDH_rsp_fn fn, cosnt uint8_t *nocPublic, u
         }
     }
     break;
-}
 #endif
-
+}
+#if 0
 static void derive_key_from_shared_secret_and_public_keys(
     const unsigned char *shared_secret, std::size_t shared_secret_len,
     const unsigned char *our_public_key, std::size_t our_public_key_len,
@@ -75,7 +74,8 @@ static void derive_key_from_shared_secret_and_public_keys(
     // Copy the required number of bytes to the output
     memcpy(output, hash, output_len);
 }
-
+#endif
+#if 0
 std::tuple<uint8_t, uint8_t const *>Z9Lock_ECDH(uint8_t const *msg)
 {
     // remote public key should be 64 bytes
@@ -183,3 +183,4 @@ std::tuple<uint8_t, uint8_t const *>Z9Lock_ECDH(uint8_t const *msg)
     // 8) return public key
     return { sizeof(lock_public_key), lock_public_key };
 }
+#endif

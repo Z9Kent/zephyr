@@ -17,7 +17,7 @@ extern "C" {
 // declare types
 typedef struct kcb kcb_t;
 typedef uint8_t    kcb_headroom_t;
-typedef uint32_t   kcb_offset_t;
+typedef uint16_t   kcb_offset_t;
 
 // lifecycle
 kcb_t      *kcb_allocate(kcb_headroom_t, const char *file , unsigned line);
@@ -183,8 +183,8 @@ struct KCB
 
     // position, size, & length
     KCB&        top()               { return exec(kcb_top); }
-    KCB&        seek(uint32_t pos)  { return exec(kcb_seek, pos); }
-    KCB&        skip(uint32_t pos)  { return exec(kcb_skip, pos); }
+    KCB&        seek(offset_t pos)  { return exec(kcb_seek, pos); }
+    KCB&        skip(offset_t pos)  { return exec(kcb_skip, pos); }
     offset_t    curPos()            { return exec_v<offset_t>(kcb_curPos); }
     offset_t    size()   const      { return kcb_size(*this); }
     offset_t    length() const      { return kcb_length(*this); }

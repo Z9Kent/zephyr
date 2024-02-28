@@ -105,7 +105,9 @@ z9_error_t kcb_link(kcb_t *kcb)
 
 uint8_t kcb_getLinks(kcb_t *kcb)
 {
-   return KernelBuffer_getReferences((struct KernelBuffer *)kcb);
+    KB_ref_t refs;
+    KernelBuffer_referenceCount((struct KernelBuffer *)kcb, &refs);
+    return refs;
 }
 
 uint16_t kcb_ident(kcb_t *kcb)
@@ -389,7 +391,7 @@ z9_error_t kcb_write(kcb_t *kcb, uint8_t c)
 }
 
 // characters from head to tail
-uint32_t kcb_size(kcb_t *kcb)
+kcb_offset_t kcb_size(kcb_t *kcb)
 {
     // ignore operation if buffer in error state
     if (kcb->head_org < sizeof(kcb_t))
@@ -398,14 +400,16 @@ uint32_t kcb_size(kcb_t *kcb)
     uint8_t n = kcb_count(kcb, NULL); // number of blocks
 
     // add count for added blocks
-    uint32_t len = n * (sizeof(struct KernelBuffer) - sizeof(struct KernelBuffer *));
+    // pick larger signed size to run down negative size buf
+    int len = n * (sizeof(struct KernelBuffer) - sizeof(struct KernelBuffer *));
 
     // subtract out unoccupied slots at beginning and end
     len -= kcb->head_org + kcb->tail_cnt - sizeof(struct KernelBuffer *);
+    __ASSERT(len >= 0, "%s: length is negative", __func__);
     return len;
 }
 
-uint32_t kcb_length(kcb_t *kcb)
+kcb_offset_t kcb_length(kcb_t *kcb)
 {
     // ignore operation if buffer in error state
     if (kcb->head_org < sizeof(kcb_t))
@@ -416,7 +420,8 @@ uint32_t kcb_length(kcb_t *kcb)
         return kcb_size(kcb);
 
     // if read mode, from read pointer -> end
-    uint32_t len = kcb->read_cnt; // remaining in current block;
+    // XXX pick larger signed size to run down length < 0 bug
+    int len = kcb->read_cnt; // remaining in current block;
 
     // add in full BLOCKS
     struct KernelBuffer *p = kcb->rw_p;
@@ -429,10 +434,11 @@ uint32_t kcb_length(kcb_t *kcb)
         len += sizeof(struct KernelBuffer) - sizeof(struct KernelBuffer *);
         p = p->next_p;
     }
+    __ASSERT(len >= 0, "%s: length is negative", __func__);
     return len;
 }
 
-z9_error_t kcb_curPos(kcb_t *kcb, uint32_t *pCurPos)
+z9_error_t kcb_curPos(kcb_t *kcb, kcb_offset_t *pCurPos)
 {
     // ignore operation if buffer in error state
     if (kcb->head_org < sizeof(kcb_t))
@@ -445,7 +451,8 @@ z9_error_t kcb_curPos(kcb_t *kcb, uint32_t *pCurPos)
         return 0;
 
     // start with number in first block adjusted for unread in last
-    uint32_t len = sizeof(struct KernelBuffer) - kcb->head_org - kcb->read_cnt;
+    // XXX pick larger signed size to run down negative length bug
+    int len = sizeof(struct KernelBuffer) - kcb->head_org - kcb->read_cnt;
 
     // add in full BLOCKS
     // walk block from HEAD to current block
@@ -460,11 +467,12 @@ z9_error_t kcb_curPos(kcb_t *kcb, uint32_t *pCurPos)
     if (!p->next_p)
         len -= kcb->tail_cnt;
 
+    __ASSERT(len >= 0, "%s: position is negative", __func__);
     *pCurPos = len;
     return NULL;
 }
 
-z9_error_t kcb_seek(kcb_t *kcb, uint32_t loc)
+z9_error_t kcb_seek(kcb_t *kcb, kcb_offset_t loc)
 {
     // ignore operation if buffer in error state
     if (kcb->head_org < sizeof(kcb_t))
@@ -558,9 +566,9 @@ uint8_t *kcb_currentBlock(kcb_t *kcb, kcb_headroom_t *bytesAvailable)
     return p;
 }
 
-z9_error_t kcb_skip(kcb_t *kcb, uint32_t bytesToAdvance)
+z9_error_t kcb_skip(kcb_t *kcb, kcb_offset_t bytesToAdvance)
 {
-    uint32_t curPos;
+    kcb_offset_t curPos;
     kcb_curPos(kcb, &curPos);
     return kcb_seek(kcb, curPos + bytesToAdvance);
 }

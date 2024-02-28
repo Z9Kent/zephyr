@@ -1,0 +1,124 @@
+Zephyr and Crypto support
+2024 Feb 27
+
+Zephyr has built in support for `crypto` via three mechanisms:
+
+    1. The `crypto_driver_api` can be implemented to provide hardware crypto for symmetrical AES,
+
+    2. The `TinyCrypt` crypto library, which supports software crypto for most common use cases, and
+
+    3. The `mbedTLS` external project which has exhaustive support for all things crypto.
+
+In addition, there are two versions of Zephyr which are of interest: The stock Zephyr supplied by the Zephyr project, and
+the Nordic Semiconductor extension, branded nRF-Connect. These two products are substiantially different in their support 
+for cryptography.
+
+1. crypto_driver_api
+
+Zephyr built-in `crypto_driver_api` provides a framework to hook-in SOC (and presumably external hardware) crypto. The API
+provides hooks to perform all types of AES encryption (including GCM). These drivers can be enabled by mentioning them in
+SOC or board device trees. Very few parts have implemented drivers in the "zephyr/drivers/crypto" directory. These parts seem
+to correspond to those with "Trusted Firmware" support. 
+
+One notable `crypto_driver_api` implementation is a set of `shims` so that the mbedTLS software/hardware driver can be executed
+via the `driver` api.
+
+There are no samples provided by Zephyr for the `driver` API. I could find no tests. I did not examine the Trusted Firmware 
+substem for tests.
+
+2. TinyCrypt 
+
+TinyCrypt is a software-only package which is supported by the Zephyr core. This package supports AES encryption as 
+well as SHA, authentication, and some ECC curves with ECDH. Unfortunately, the one AES method not supported is GCM.
+
+`TinyCrypt` is developed outside of the zephyr project and is imported as a complete `git` packet and is stored under
+`modules/crypto`. Drivers for zephyr are one interface provided by `TinyCrypt` project. There are tests for the `TinyCrypt`
+module built into the Zephyr CI facility.
+
+There are no samples provided by Zephyr for the `TinyCrypt` module. However the test `applications` can be used as samples.
+
+3. mbedTLS 
+
+The `mbedTLS` project is external to Zephyr. The project provides state-of-the-art crypto primiitives for embedded applications.
+The features supported are exhaustive: symmetric encryption (AES/DES), asymmetric encryption (RSA/ECC), certificate mangement,
+SHA (all flavors), HMAC (all flavors), key management, etc, etc. 
+
+The mbedTLS project also includes a reference of the `PSA Cryptography API`. This "Platform Security Architecture" was developed
+by ARM as part of the Trusted Firmware framework. The "trusted key storage", "trusted execution", "realms of trust", etc, supported 
+in silicon necessitated the API.
+
+The reference PSA implementation includes software implementation of all features (I believe).
+
+The PSA implementation also includes a `driver API`. This driver is separate / different from the zephyr driver API. Of course,
+since the Trusted Firmware implementations seem to include zephyr crpyto drivers, there may be shims to leverage Zephyr drivers.
+I have not looked into this.
+
+The `mbedTLS` project has been around for years. I believe that prior versions of mbedTLS utilized the `zephyr_driver_api` to
+perform operations. If the `Kconfig` symbol `CONFIG_MBEDTLS_PSA_CRYPTO_C` is not included (which would pull in the software
+implementations of the crypto functions), the resulting undefined symbols make me believe that mbedTLS reverts to the 
+`zephyr_driver_api` interface.
+
+At present all features can be access via the `mbedTLS` API (ie there are `mbed_*` methods to call for everything). However, all
+things supported by the `PSA` reference implementation can be accessed via `psa_*` methods. According to the "roadmap" for mbedTLS,
+it is planned to seperate the crypto functions from the certificate manage functions into two separate entities, one accessed via 
+the `psa_*` methods and the other via the `mbed_*` methods.
+
+Since mbedTLS is designed for embedded systems, there is a mechanism to include only those features which are required to reduce
+footprint of module. (See notes below on why this isn't currently supported by Zephyr.)
+
+4. nRF-Connect support 
+
+The Nordic Semiconductor development environment is based on Zephyr and is branded nrf-connect. This software tracks the stock 
+Zephyr very closely, which is not surprising as Nordic seems to be the largest contributor to Zephyr at the present. The nrf-connect 
+product differs from stock Zephyr in two ways: support for non-nordic parts is not included in nrf-connect, and many enhancements have
+been added to nrf-connect that are not incorporated into base Zephyr.
+
+As nrf-connect is a commercial product targeted at the IOT market, it contains several enhancements in the BLE and crypto stacks. 
+In particular, the mbedTLS and PSA_CRYPTO stacks are complete and have these improvements over base Zephyr:
+
+    - All mbedTLS / PSA_CRYPTO features can be individually enabled. This down to which curves, which key-sizes, etc for each.
+
+    - Hardware drivers (in binary form) supplied for all nordic parts
+
+    - Software drivers (in binary form) supplied for any crypto features not supported in hardware
+
+As an example, the nordic nRF52 parts support AES, but not AES-GCM. Nordic provides a binary library from `oberon` to supply support.
+
+nrf-connect provides a complete set of samples for all crypto functions.
+
+=======
+
+5. Discussion
+
+I ran into a problem which trying to build the Z9-lock code for the actual `WaveLynx-Athena` controller board. I had successfully
+split the unified code (which runs on the Dongle) into two boards (both Nordic nrf52840 development kits). I had then successfully 
+port the controller to the SAML22 development board (including completing the port for the SAML22 SOC & board definition). Then,
+after completing the WaveLynx-athena board definition I was ready for the final step: building for the target hardware. As we discussed
+earlier, the binary exceeded the ROM & RAM footprints for the target board (which are half of the development kit). From looking at the
+symbol table, I could see that about of the code was devoted to RSA, DES, ECC, SHA, etc. However I was unable remove the unneeded 
+crypto functions as the `Kconfig` functions were still listed but had been disabled. I tried manually editing the crypto header files,
+but the config had been restricted for a reason: I couldn't get a working compile.
+
+There are two basic ways to move forward: 
+
+    - Port our GCM driver from the original code to Zephyr. Make this work with mbedTLS hardware support.
+
+    - Use the software-only `aes-gcm` module to provide GCM functionality to the tinyCrypt module. I used this
+      `aes-gcm` module to provide a software reference (under macOS) which developing SAML22 driver. 
+
+If we are to deliver an example in March, I might suggest software-only option 2. It should be small enough to fit on
+target hardware. It would also allow us to have a "software-only" implementation in our tool-bag.
+
+Of course, support for the hardware driver will be needed for finished product. It should be straightforward to port driver.
+Integration with mbedTLS will either be automatic, or require work. I'd look at that before beginning.
+
+6. Final notes
+
+This represents my current understanding of crypto in the Zephyr project. It is based on my examiniation of the code &
+experience building / running Z9-Lock code. There is no overview in the Zephyr documentation, on doxygen-generated references
+to the APIs.
+
+As an aside, to get the hardware random-number-generator working was to mention it in the `device-tree`. Zephyr loaded proper 
+driver and started using for crypto replacing the software generator. I hope writing the hardware crypto driver would "just work".
+
+
