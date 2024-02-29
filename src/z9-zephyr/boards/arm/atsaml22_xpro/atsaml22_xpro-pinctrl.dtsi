@@ -1,0 +1,68 @@
+/*
+ * Copyright (c) 2021 Argentum Systems Ltd.
+ * KBH 08/17/2023
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <dt-bindings/pinctrl/saml22n-pinctrl.h>
+
+&pinctrl {
+	tcc0_default: tcc0_default {
+		group1 {
+			pinmux = <PC28F_TCC0_WO4>;
+		};
+	};
+
+	sercom0_default: sercom0_default {
+		group1 {
+			pinmux = <PA4D_SERCOM0_PAD0>,
+				 <PA6D_SERCOM0_PAD2>,
+				 <PA7D_SERCOM0_PAD3>;
+		};
+	};
+
+	sercom1_default: sercom1_default {
+		group1 {
+			pinmux = <PC11C_SERCOM1_PAD3>,
+					 <PC12C_SERCOM1_PAD0>,
+				     <PC13C_SERCOM1_PAD1>;
+		};
+	};
+
+    /* user-guide 4.2.1: serial to EXT1 */
+	sercom2_default: sercom2_default {
+		group1 {
+			pinmux = <PA22D_SERCOM2_PAD0>,
+				 <PA23D_SERCOM2_PAD1>;
+		};
+	};
+
+    /* user-guide 4.2.1: serial to EXT2 */
+	sercom3_default: sercom3_default {
+		group1 {
+			pinmux = <PA12D_SERCOM3_PAD0>,
+				 <PA13D_SERCOM3_PAD1>;
+		};
+	};
+
+    /* user-guide 4.4.2: virtual com port */
+    /* NB: also uart on EXT3 */
+	sercom4_default: sercom4_default {
+		group1 {
+			pinmux = <PC24D_SERCOM4_PAD2>,
+				 <PC25D_SERCOM4_PAD3>;
+		};
+	};
+
+    /* user-guide 4.4.3: "data gateway interface */
+    /* comparing with SAML11_xplained, SPI: MISO, MOSI, SCK */
+    /* XXX NB: SAML22 Table 6-1 says PB24D is sercom4, not 5 */
+	sercom5_default: sercom5_default {
+		group1 {
+			pinmux = <PB24D_SERCOM5_PAD0>,
+				 <PB22D_SERCOM5_PAD2>,
+				 <PB23D_SERCOM5_PAD3>;
+		};
+	};
+};

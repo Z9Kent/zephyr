@@ -1,0 +1,9 @@
+# update KBH 8/17/2023
+# SAM L22 Xplained Pro board configuration
+
+# Copyright (c) 2021 Argentum Systems Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_ATSAML22_XPRO
+	bool "SAM L22 Xplained Pro"
+	depends on SOC_PART_NUMBER_SAML22N18A

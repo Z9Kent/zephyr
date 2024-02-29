@@ -1,0 +1,24 @@
+# Copyright (c) 2021 Argentum Systems Ltd.
+# KBH 08/17/2023
+# SPDX-License-Identifier: Apache-2.0
+identifier: atsaml22_xpro
+name: SAM L22 Xplained Pro
+type: mcu
+arch: arm
+ram: 32
+flash: 256
+toolchain:
+  - zephyr
+  - gnuarmemb
+  - xtools
+supported:
+  - adc
+  - counter
+  - dma
+  - gpio
+  - i2c
+  - pwm
+  - spi
+  - usb_cdc
+  - usb_device
+  - watchdog

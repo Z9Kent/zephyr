@@ -1,0 +1,9 @@
+# SAM L22 Xplained Pro board configuration
+# KBH 8/17/2023
+
+# Copyright (c) 2021 Argentum Systems Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD
+	default "wl_athena"
+	depends on BOARD_WAVELYNX_ATHENA

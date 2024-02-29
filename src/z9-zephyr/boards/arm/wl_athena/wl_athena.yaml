@@ -1,0 +1,24 @@
+# Copyright (c) 2021 Argentum Systems Ltd.
+# KBH 08/17/2023
+# SPDX-License-Identifier: Apache-2.0
+identifier: wl_athena
+name: WaveLynx Athena Lock Controller
+type: mcu
+arch: arm
+ram: 16
+flash: 128
+toolchain:
+  - zephyr
+  - gnuarmemb
+  - xtools
+supported:
+  - adc
+  - counter
+  - dma
+  - gpio
+  - i2c
+  - pwm
+  - spi
+  - usb_cdc
+  - usb_device
+  - watchdog

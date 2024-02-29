@@ -36,6 +36,7 @@ manifest:
   # Please add items below based on alphabetical order
   projects:
     - name: zephyr
+      remote: z9-kent
       revision: v3.5.0
       west-commands: scripts/west-commands.yml
       import: true
