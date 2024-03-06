@@ -102,7 +102,7 @@ int main()
         int err;
 
         printk("Starting Z9Lock BLE Test Fixture\n");
-        psa_crypto_init();              // XXX
+        //psa_crypto_init();              // XXX
  
 
 #ifdef CONFIG_Z9_READER 

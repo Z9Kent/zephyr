@@ -4,13 +4,16 @@ cmake_minimum_required(VERSION 3.20.0)
 set(z9-zephyr "${CMAKE_CURRENT_SOURCE_DIR}/../z9-zephyr")
 #list(APPEND BOARD_ROOT /Users/kent/Projects/z9-lock-zephyr/src/z9-zephyr/boards)
 list(APPEND BOARD_ROOT ${z9-zephyr})
-list(APPEND SOC_ROOT   "${z9-zephyr}/soc")
-list(APPEND DTS_ROOT   ${z9-zephyr})
+#list(APPEND SOC_ROOT   "${z9-zephyr}/soc")
+#list(APPEND DTS_ROOT   ${z9-zephyr})
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 #set(ZEPHRY_MODULES modules/meta)
 
+
 project(z9-lock)
+add_subdirectory(aes-gcm)
+
 include_directories(SYSTEM ../modules/meta/include)
 include_directories(SYSTEM ../modules/crypto/mbedtls/configs)
 include_directories(../z9-zephyr/ble)

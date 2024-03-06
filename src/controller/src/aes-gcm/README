@@ -1,0 +1,10 @@
+# retrieved from github 2024-03-01 by KBH
+# modified to remove mbedTLS configuration variables, so that
+# zephyr definitions don't interfere.
+
+# conditioned on `CONFIG_Z9_GCM_C`
+# rename all `mbedtls_*` variables `z9_*` to remove conflicts
+
+# modified to use ROM for tables instead of RAM
+
+git clone https://github.com/theicfire/aes-gcm.git

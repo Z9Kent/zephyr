@@ -1,0 +1,9 @@
+menu "Z9 Crypto"
+
+config Z9_GCM_C
+    bool "Enable Software GCM"
+    default n
+
+endmenu
+
+      
