@@ -9,7 +9,8 @@ config Z9_CONTROLLER
     default n
 endmenu
 
-rsource "aes-gcm/Kconfig.aes-gcm"
+#rsource "aes-gcm/Kconfig.aes-gcm"
+rsource "z9-st2543916"
 
 menu "Zephyr Kernel"
 source "Kconfig.zephyr"

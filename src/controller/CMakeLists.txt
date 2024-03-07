@@ -12,7 +12,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 
 project(z9-lock)
-add_subdirectory(aes-gcm)
+#add_subdirectory(aes-gcm)
 
 include_directories(SYSTEM ../modules/meta/include)
 include_directories(SYSTEM ../modules/crypto/mbedtls/configs)

@@ -1,12 +1,14 @@
 cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 #set(ZEPHRY_MODULES modules/meta)
+add_subdirectory_ifdef(CONFIG_ST25R3916_LIB st25r3916)
 
 project(z9-lock)
 include_directories(SYSTEM ../modules/meta/include)
 include_directories(../z9-zephyr/ble)
 #target_sources(app PRIVATE src/main.cc)
 #target_sources(app PRIVATE src/button.c)
+target_sources(app PRIVATE src/main_st25r3916.c)
 
 target_sources(app PRIVATE ../z9-zephyr/ble/z9_ble_driver.c)
 target_sources(app PRIVATE ../z9-zephyr/ble/z9lockio_ble.cc)

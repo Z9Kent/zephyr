@@ -7,6 +7,14 @@ config Z9_READER
 config Z9_CONTROLLER
     bool "Enable Controller"
     default n
+
+config ST25R3916_LIB
+    bool "Enable 3911 Library"
+    default n
+
+rsource "st25r3916/Kconfig"
+
+
 endmenu
 
 menu "Zephyr Kernel"

@@ -1,7 +1,0 @@
-[manifest]
-path = manifest-repo
-file = west.yml
-
-[zephyr]
-base = zephyr
-

@@ -16,13 +16,13 @@
 #include "mbedtls/sha256.h"
 
 //#include "Z9Message.h"
-#include "ProtocolMetadata.h"
-#include "Z9Serialize.h"
-#include "variableArray.h"
+//#include "ProtocolMetadata.h"
+//#include "Z9Serialize.h"
+//#include "variableArray.h"
 
 using namespace z9;
-using namespace z9::protocols;
-using z9::protocols::z9lockio::getFormatter;
+//using namespace z9::protocols;
+//using z9::protocols::z9lockio::getFormatter;
 
 // generate eros headers: 
 // first header is `leaf_ble_msg_t` which is 5 bytes
