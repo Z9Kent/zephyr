@@ -109,4 +109,4 @@ private:
 extern uint8_t link_key[16], session_key[16];
 // mimic old code
 extern uint8_t local_seed[16], gcm_key[16];
-extern psa_key_id_t psa_link_key;
+extern gcm_key_id_t psa_link_key;

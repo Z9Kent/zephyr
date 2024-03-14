@@ -9,10 +9,11 @@ list(APPEND BOARD_ROOT ${z9-zephyr})
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 #set(ZEPHRY_MODULES modules/meta)
-
+#add_subdirectory_ifdef(CONFIG_Z9_GCM_C, aes-gcm)
+add_subdirectory(aes-gcm)
+include_directories(aes-gcm)
 
 project(z9-lock)
-#add_subdirectory(aes-gcm)
 
 include_directories(SYSTEM ../modules/meta/include)
 include_directories(SYSTEM ../modules/crypto/mbedtls/configs)
@@ -22,9 +23,9 @@ target_sources(app PRIVATE src/button.c)
 
 #target_sources(app PRIVATE ../z9-zephyr/ble/z9_ble_driver.c)
 #target_sources(app PRIVATE ../z9-zephyr/ble/z9lockio_ble.cc)
-target_sources(app PRIVATE ../z9-zephyr/ble/Z9Lock_status.cc)
 #target_sources(app PRIVATE ../z9-zephyr/ble/Eros_protocol.cc)
-target_sources(app PRIVATE ../z9-zephyr/ble/Z9Crypto.cc)
+target_sources(app PRIVATE ../z9-zephyr/ble/Z9Lock_status.cc)
+target_sources(app PRIVATE ../z9-zephyr/ble/Z9Crypto_gcm.cc)
 target_sources(app PRIVATE ../z9-zephyr/ble/Z9Crypto_gcm_KCB.cc)
 target_sources(app PRIVATE ../z9-zephyr/ble/EventDb.cc)
 target_sources(app PRIVATE ../z9-zephyr/ble/Settings.cc)

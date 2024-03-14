@@ -20,15 +20,9 @@
  *
  *  This file is part of mbed TLS (https://tls.mbed.org)
  */
-
 #pragma once
 
-// relevent defn moved from `config.h`
-#define Z9_GCM_C
-
 #include "cipher.h"
-
-// relevent definitions from `config.h`
 
 #include <stdint.h>
 
@@ -38,15 +32,14 @@
 #define Z9_ERR_GCM_AUTH_FAILED                       -0x0012  /**< Authenticated decryption failed. */
 #define Z9_ERR_GCM_BAD_INPUT                         -0x0014  /**< Bad input parameters to function. */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
+namespace z9{}
+namespace z9::z9_gcm
+{
 /**
  * \brief          GCM context structure
  */
 typedef struct {
-    z9_cipher_context_t cipher_ctx;/*!< cipher context used */
+    mbedtls_cipher_context_t cipher_ctx;/*!< cipher context used */
     uint64_t HL[16];            /*!< Precalculated HTable */
     uint64_t HH[16];            /*!< Precalculated HTable */
     uint64_t len;               /*!< Total data length */
@@ -56,16 +49,16 @@ typedef struct {
     unsigned char buf[16];      /*!< buf working value */
     int mode;                   /*!< Encrypt or Decrypt */
 }
-Z9_gcm_c_context;
+mbedtls_gcm_context;
 
 /**
  * \brief           Initialize GCM context (just makes references valid)
- *                  Makes the context ready for Z9_gcm_c_setkey() or
- *                  Z9_gcm_c_free().
+ *                  Makes the context ready for mbedtls_gcm_setkey() or
+ *                  mbedtls_gcm_free().
  *
  * \param ctx       GCM context to initialize
  */
-void Z9_gcm_c_init( Z9_gcm_c_context *ctx );
+void mbedtls_gcm_init( mbedtls_gcm_context *ctx );
 
 /**
  * \brief           GCM initialization (encryption)
@@ -77,8 +70,8 @@ void Z9_gcm_c_init( Z9_gcm_c_context *ctx );
  *
  * \return          0 if successful, or a cipher specific error code
  */
-int Z9_gcm_c_setkey( Z9_gcm_c_context *ctx,
-                        z9_cipher_id_t cipher,
+int mbedtls_gcm_setkey( mbedtls_gcm_context *ctx,
+                        mbedtls_cipher_id_t cipher,
                         const unsigned char *key,
                         unsigned int keybits );
 
@@ -104,7 +97,7 @@ int Z9_gcm_c_setkey( Z9_gcm_c_context *ctx,
  *
  * \return         0 if successful
  */
-int Z9_gcm_c_crypt_and_tag( Z9_gcm_c_context *ctx,
+int mbedtls_gcm_crypt_and_tag( mbedtls_gcm_context *ctx,
                        int mode,
                        size_t length,
                        const unsigned char *iv,
@@ -137,7 +130,7 @@ int Z9_gcm_c_crypt_and_tag( Z9_gcm_c_context *ctx,
  * \return         0 if successful and authenticated,
  *                 Z9_ERR_GCM_AUTH_FAILED if tag does not match
  */
-int Z9_gcm_c_auth_decrypt( Z9_gcm_c_context *ctx,
+int mbedtls_gcm_auth_decrypt( mbedtls_gcm_context *ctx,
                       size_t length,
                       const unsigned char *iv,
                       size_t iv_len,
@@ -160,7 +153,7 @@ int Z9_gcm_c_auth_decrypt( Z9_gcm_c_context *ctx,
  *
  * \return         0 if successful
  */
-int Z9_gcm_c_starts( Z9_gcm_c_context *ctx,
+int mbedtls_gcm_starts( mbedtls_gcm_context *ctx,
                 int mode,
                 const unsigned char *iv,
                 size_t iv_len,
@@ -170,7 +163,7 @@ int Z9_gcm_c_starts( Z9_gcm_c_context *ctx,
 /**
  * \brief           Generic GCM update function. Encrypts/decrypts using the
  *                  given GCM context. Expects input to be a multiple of 16
- *                  bytes! Only the last call before Z9_gcm_c_finish() can be less
+ *                  bytes! Only the last call before mbedtls_gcm_finish() can be less
  *                  than 16 bytes!
  *
  * \note On decryption, the output buffer cannot be the same as input buffer.
@@ -184,7 +177,7 @@ int Z9_gcm_c_starts( Z9_gcm_c_context *ctx,
  *
  * \return         0 if successful or Z9_ERR_GCM_BAD_INPUT
  */
-int Z9_gcm_c_update( Z9_gcm_c_context *ctx,
+int mbedtls_gcm_update( mbedtls_gcm_context *ctx,
                 size_t length,
                 const unsigned char *input,
                 unsigned char *output );
@@ -200,7 +193,7 @@ int Z9_gcm_c_update( Z9_gcm_c_context *ctx,
  *
  * \return          0 if successful or Z9_ERR_GCM_BAD_INPUT
  */
-int Z9_gcm_c_finish( Z9_gcm_c_context *ctx,
+int mbedtls_gcm_finish( mbedtls_gcm_context *ctx,
                 unsigned char *tag,
                 size_t tag_len );
 
@@ -209,17 +202,13 @@ int Z9_gcm_c_finish( Z9_gcm_c_context *ctx,
  *
  * \param ctx       GCM context to free
  */
-void Z9_gcm_c_free( Z9_gcm_c_context *ctx );
+void mbedtls_gcm_free( mbedtls_gcm_context *ctx );
 
 /**
  * \brief          Checkup routine
  *
  * \return         0 if successful, or 1 if the test failed
  */
-int Z9_gcm_c_self_test( int verbose );
+int mbedtls_gcm_self_test( int verbose );
 
-#ifdef __cplusplus
 }
-#endif
-
-#endif /* gcm.h */

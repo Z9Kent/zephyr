@@ -1,0 +1,7 @@
+menu "Z9-Lock"
+
+rsource "aes-gcm/Kconfig"
+rsource "ble/Kconfig"
+
+endmenu
+

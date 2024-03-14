@@ -1,7 +1,7 @@
 
 #include "Z9IO_Link.h"
 #include "Z9IO_Device.h"
-#include "Z9Crypto.h"       // key negotiation
+#include "Z9Crypto_gcm.h"       // key negotiation
 #include "Z9IO_Logic.h"
 #include "Z9IOProtocol_Current.h"
 
@@ -14,7 +14,7 @@ LOG_MODULE_REGISTER(z9io, LOG_LEVEL_DBG);
 uint8_t link_key[16], session_key[16];
 // mimic old code
 uint8_t local_seed[16], gcm_key[16];
-psa_key_id_t psa_link_key;
+gcm_key_id_t psa_link_key;
 
 const struct device *dev_0 = DEVICE_DT_GET(DT_ALIAS(z9io_serial));
 Z9IO_Link link{ 0, dev_0 };

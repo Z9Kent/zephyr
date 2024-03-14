@@ -2,7 +2,7 @@
 #include "Eros_protocol.h"
 #include "z9lockio_ble.h"
 #include "Z9LockIOProtocol_Current.h"
-#include "Z9Crypto.h"
+#include "Z9Crypto_gcm.h"
 #include "Settings.h"
 
 #include <cstring>
@@ -95,8 +95,8 @@ std::tuple<uint8_t, uint8_t const *>Z9Lock_ECDH(uint8_t const *msg)
 
     // need new public key for lock
     // 1) generate key pair
-    psa_key_handle_t key_handle;
-	psa_status_t status;
+    gcm_key_handle_t key_handle;
+	gcm_status_t status;
 	psa_key_attributes_t key_attributes = PSA_KEY_ATTRIBUTES_INIT;
 
 	/* Crypto settings for ECDH using the SHA256 hashing algorithm with the secp256r1 curve */

@@ -2,15 +2,15 @@
 #include "Eros_protocol.h"
 #include "z9lockio_ble.h"
 #include "Z9LockIOProtocol_Current.h"
-#include "Z9Crypto.h"
+#include "Z9Crypto_gcm.h"
 #include "EventDb.h"
 
 #include <cstring>
 #include <zephyr/kernel.h>
 
-#include <psa/crypto.h>
-#include <psa/crypto_extra.h>
-#include "mbedtls/sha256.h"
+//#include <psa/crypto.h>
+//#include <psa/crypto_extra.h>
+//#include "mbedtls/sha256.h"
 
 #include "ProtocolMetadata.h"
 #include "Z9Serialize.h"
@@ -163,7 +163,7 @@ static uint8_t *z9lockio_create_bundle_header(uint8_t *p, bool toInter = false, 
     return p;
 }
 
-static uint8_t *z9lockio_create_opaque(uint8_t *p, uint16_t bytes, psa_key_id_t& key)
+static uint8_t *z9lockio_create_opaque(uint8_t *p, uint16_t bytes, gcm_key_id_t& key)
 {
     // allocate our room
     auto msg = p - z9_opaque_header_len;

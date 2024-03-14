@@ -8,7 +8,7 @@
 #include "variableArray.h"
 //#include "Z9LockIOProtocol_Serialize.cc"
 #include "Z9LockIO_protocol.h"
-#include "Z9Crypto.h"
+#include "Z9Crypto_gcm.h"
 
 
 using namespace z9;
@@ -18,7 +18,7 @@ using z9::protocols::z9lockio::getFormatter;
 uint64_t mobileID;
 uint32_t unid;
 uint8_t  schedMask;
-psa_key_id_t mobile_key_handle;
+gcm_key_id_t mobile_key_handle;
 
 static void Z9LockIO_gen_challenge();
 

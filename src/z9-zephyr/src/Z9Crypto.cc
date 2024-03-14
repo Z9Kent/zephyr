@@ -13,11 +13,11 @@ uint8_t raw_lock_public_key[33];
 uint8_t raw_application_key[16];
 
 // create GSM key from raw bytes
-psa_key_id_t Z9Crypto_setKey(uint8_t *key, uint16_t key_bytes)
+gcm_key_id_t Z9Crypto_setKey(uint8_t *key, uint16_t key_bytes)
 {
-    psa_status_t status;
+    gcm_status_t status;
     psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_key_id_t handle;
+    gcm_key_id_t handle;
 
     status = psa_crypto_init();
     if (status != PSA_SUCCESS)
@@ -44,7 +44,7 @@ psa_key_id_t Z9Crypto_setKey(uint8_t *key, uint16_t key_bytes)
     return handle;
 }
 
-void Z9Crypto_destroyKey(psa_key_id_t& handle)
+void Z9Crypto_destroyKey(gcm_key_id_t& handle)
 {
     /* Destroy the key */
     psa_destroy_key(handle);
@@ -57,7 +57,7 @@ void Z9Crypto_destroyKey(psa_key_id_t& handle)
 uint8_t *Z9Crypto_random()
 {
     static uint8_t random[16];
-    psa_status_t status = psa_generate_random(random, sizeof(random));
+    gcm_status_t status = psa_generate_random(random, sizeof(random));
     if (!status)
         return random;
     return {};
@@ -68,7 +68,7 @@ uint8_t *Z9Crypto_random()
 
 // single function entrypoint: assume 12-byte nonce
 // uses multi-part PSA interface
-void Z9Crypto_gcm_encrypt(psa_key_id_t key,
+void Z9Crypto_gcm_encrypt(gcm_key_id_t key,
                           const char *nonce,
                           const uint8_t *aad,
                           size_t aad_length,
@@ -78,7 +78,7 @@ void Z9Crypto_gcm_encrypt(psa_key_id_t key,
                           uint8_t *tag,
                           size_t tag_length)
 {
-    psa_status_t status;
+    gcm_status_t status;
     psa_aead_operation_t operation = PSA_AEAD_OPERATION_INIT;
     
     status = psa_aead_encrypt_setup(&operation, key, PSA_ALG_GCM);

@@ -11,7 +11,7 @@ LOG_MODULE_REGISTER(Crypto, LOG_LEVEL_DBG);
 
 //z9_error_t Z9Crypto_gcm_encrypt_KCB(KCB& kcb, uint8_t *iv = {});
 
-z9_error_t Z9Crypto_gcm_decrypt_KCB(psa_key_id_t key, KCB& kcb, uint8_t *prefix, uint8_t prefix_len)
+z9_error_t Z9Crypto_gcm_decrypt_KCB(gcm_key_id_t key, KCB& kcb, uint8_t *prefix, uint8_t prefix_len)
 {
     // psa doesn't allow same input & output.
     // until I can fix it, decrypt into 1K buffer, then copy decrypted data back to KCB
@@ -61,7 +61,7 @@ z9_error_t Z9Crypto_gcm_decrypt_KCB(psa_key_id_t key, KCB& kcb, uint8_t *prefix,
     return {};
 }
 
-z9_error_t Z9Crypto_gcm_encrypt_KCB(psa_key_id_t key, KCB& kcb, uint8_t *prefix, uint8_t prefix_len, uint8_t *iv_data)
+z9_error_t Z9Crypto_gcm_encrypt_KCB(gcm_key_id_t key, KCB& kcb, uint8_t *prefix, uint8_t prefix_len, uint8_t *iv_data)
 {
     // psa doesn't allow same input & output.
     // until I can fix it, decrypt into 1K buffer, then copy decrypted data back to KCB

@@ -19,7 +19,8 @@
 
 // TODO: pull from KConfig
 #define KernelBuffer_BLOCK_SIZE  128
-#define KernelBuffer_NUM_BLOCKS   30
+//#define KernelBuffer_NUM_BLOCKS   30
+#define KernelBuffer_NUM_BLOCKS   20
 
 #ifdef __cplusplus
 extern "C" {

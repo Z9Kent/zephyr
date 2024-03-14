@@ -3,7 +3,7 @@
 #include "z9lockio_ble.h"
 //#include "Z9LockIO_protocol.h"
 #include "Z9LockIOProtocol_Current.h"
-#include "Z9Crypto.h"
+#include "Z9Crypto_gcm.h"
 #include "KernelCharacterBuffer.h"
 #include "Z9IO_Logic.h"
 #include "z9_ble_driver.h"

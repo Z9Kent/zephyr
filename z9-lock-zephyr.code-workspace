@@ -11,9 +11,13 @@
 		},
 		{
 			"path": "src/controller"
+		},
+		{
+			"name": "src",
+			"path": "src"
 		}
 	],
 	"settings": {
-		"nrf-connect.toolchain.path": "${nrf-connect.toolchain:2.5.0}"
+		"nrf-connect.toolchain.path": "${nrf-connect.zephyrsdk:0.16.3}"
 	}
 }

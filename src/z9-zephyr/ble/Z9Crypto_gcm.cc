@@ -1,8 +1,10 @@
-#include "Z9Crypto.h"
+#include "Z9Crypto_gcm.h"
 #include <zephyr/logging/log.h>
 #include <zephyr/kernel.h>      // printk
+#include <zephyr/random/random.h>
 
 #include <cstring>
+#include <string>       // std::begin
 #include <cstdint>
 
 LOG_MODULE_REGISTER(Z9Crypto, LOG_LEVEL_DBG);
@@ -10,10 +12,29 @@ LOG_MODULE_REGISTER(Z9Crypto, LOG_LEVEL_DBG);
 uint8_t raw_lock_public_key[33];
 uint8_t raw_application_key[16];
 
-// create GSM key from raw bytes
-psa_status_t Z9Crypto_gcmSetKey(psa_key_id_t& handle, const uint8_t *keyBytes, uint16_t numKeyBytes)
+#ifdef CONFIG_Z9_GCM_C
+static uint8_t z9_c_crypt_temp[512];
+#endif
+
+// generate a 128 bit random number
+uint8_t *Z9Crypto_random()
 {
-    psa_status_t status;
+    static uint8_t random[16];
+    auto status = sys_csrand_get(random, sizeof(random));
+    if (!status)
+        return random;
+    return {};
+}
+
+
+//
+// Key Management
+// 
+#ifndef CONFIG_Z9_GCM_C
+// create GSM key from raw bytes
+gcm_status_t Z9Crypto_gcmSetKey(gcm_key_id_t& handle, const uint8_t *keyBytes, uint16_t numKeyBytes)
+{
+    gcm_status_t status;
     psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
 
     status = psa_crypto_init();
@@ -42,7 +63,7 @@ psa_status_t Z9Crypto_gcmSetKey(psa_key_id_t& handle, const uint8_t *keyBytes, u
     return PSA_SUCCESS;
 }
 
-void Z9Crypto_destroyKey(psa_key_id_t& handle)
+void Z9Crypto_destroyKey(gcm_key_id_t& handle)
 {
     /* Destroy the key */
     psa_destroy_key(handle);
@@ -50,20 +71,30 @@ void Z9Crypto_destroyKey(psa_key_id_t& handle)
     mbedtls_psa_crypto_free();
     handle = {};
 }
+#else
+    
+static z9::z9_gcm::mbedtls_gcm_context z9_ctx;
 
-// generate a 128 bit random number
-uint8_t *Z9Crypto_random()
+gcm_status_t Z9Crypto_gcmSetKey(gcm_key_id_t& handle, const uint8_t *keyBytes, uint16_t numKeyBytes)
 {
-    static uint8_t random[16];
-    psa_status_t status = psa_generate_random(random, sizeof(random));
-    if (!status)
-        return random;
-    return {};
-}
+    z9::z9_gcm::mbedtls_gcm_init(&z9_ctx);
 
+    auto cipher = z9::z9_gcm::Z9_CIPHER_ID_AES;
+    std::memcpy(handle, keyBytes, sizeof(handle));
+    return z9::z9_gcm::mbedtls_gcm_setkey(&z9_ctx, cipher, keyBytes, 128);
+}
+void Z9Crypto_destroyKey(gcm_key_id_t& handle)
+{
+    //z9::z9_gcm::mbedtls_gcm_free(ctx);
+}
+#endif
+
+
+
+#ifndef CONFIG_Z9_GCM_C
 // single function entrypoint: assume 12-byte nonce
 // uses multi-part PSA interface
-psa_status_t Z9Crypto_gcm_encrypt(psa_key_id_t const& key,
+gcm_status_t Z9Crypto_gcm_encrypt(gcm_key_id_t const& key,
                           const uint8_t *nonce,
                           const uint8_t *aad,
                           size_t aad_length,
@@ -72,7 +103,7 @@ psa_status_t Z9Crypto_gcm_encrypt(psa_key_id_t const& key,
                           uint8_t *tag,
                           size_t tag_length)
 {
-    psa_status_t status;
+    gcm_status_t status;
     size_t written;
     uint8_t temp[text_length], *output = temp;
 
@@ -94,6 +125,36 @@ psa_status_t Z9Crypto_gcm_encrypt(psa_key_id_t const& key,
     std::memcpy(text, temp, text_length);
     return status;
 }
+#else
+
+// Z9_C
+gcm_status_t Z9Crypto_gcm_encrypt(gcm_key_id_t const& key,
+                          const uint8_t *nonce,
+                          const uint8_t *aad,
+                          size_t aad_length,
+                          uint8_t *text,
+                          size_t  text_length,
+                          uint8_t *tag,
+                          size_t tag_length)
+{
+    gcm_status_t status;
+
+    z9::z9_gcm::mbedtls_cipher_id_t cipher = z9::z9_gcm::Z9_CIPHER_ID_AES;
+    z9::z9_gcm::mbedtls_gcm_context ctx;
+    z9::z9_gcm::mbedtls_gcm_init(&ctx);
+    auto key_p = std::begin(key);
+    z9::z9_gcm::mbedtls_gcm_setkey(&ctx, cipher, key_p, 128);
+    status = z9::z9_gcm::mbedtls_gcm_crypt_and_tag (&ctx, Z9_GCM_ENCRYPT,
+                                                    text_length,
+                                                    nonce, 12,
+                                                    aad, aad_length,
+                                                    text, z9_c_crypt_temp,
+                                                    tag_length, tag);
+    std::memcpy(text, z9_c_crypt_temp, text_length);
+    return status;
+}
+
+#endif
 
 void print_hex(const char *fn, const char *pfx, uint8_t const *data, std::size_t len)
 {
@@ -103,9 +164,9 @@ void print_hex(const char *fn, const char *pfx, uint8_t const *data, std::size_t
     printk("\n");
 }
 
-
+#ifndef CONFIG_Z9_GCM_C
 // decrypt block of cipher text
-psa_status_t Z9Crypto_gcm_decrypt(psa_key_id_t const& key,
+gcm_status_t Z9Crypto_gcm_decrypt(gcm_key_id_t const& key,
                           const uint8_t *nonce,
                           const uint8_t *aad,
                           size_t aad_length,
@@ -114,7 +175,7 @@ psa_status_t Z9Crypto_gcm_decrypt(psa_key_id_t const& key,
                           uint8_t *tag,
                           size_t tag_length)
 {
-    psa_status_t status;
+    gcm_status_t status;
     size_t written = {};
     uint8_t temp[text_length], *output = temp;
 
@@ -163,4 +224,34 @@ psa_status_t Z9Crypto_gcm_decrypt(psa_key_id_t const& key,
     std::memcpy(text, temp, text_length);
     return status;
 }
+
+#else
+// Z9_GCM
+// decrypt block of cipher text
+gcm_status_t Z9Crypto_gcm_decrypt(gcm_key_id_t const& key,
+                          const uint8_t *nonce,
+                          const uint8_t *aad,
+                          size_t aad_length,
+                          uint8_t *text,
+                          size_t  text_length,
+                          uint8_t *tag,
+                          size_t tag_length)
+{
+    gcm_status_t status;
+
+    z9::z9_gcm::mbedtls_cipher_id_t cipher = z9::z9_gcm::Z9_CIPHER_ID_AES;
+    z9::z9_gcm::mbedtls_gcm_context ctx;
+    z9::z9_gcm::mbedtls_gcm_init(&ctx);
+    auto key_p = std::begin(key);
+    z9::z9_gcm::mbedtls_gcm_setkey(&ctx, cipher, key_p, 128);
+    status = z9::z9_gcm::mbedtls_gcm_crypt_and_tag (&ctx, Z9_GCM_DECRYPT,
+                                                    text_length,
+                                                    nonce, 12,
+                                                    aad, aad_length,
+                                                    text, z9_c_crypt_temp,
+                                                    tag_length, tag);
+    std::memcpy(text, z9_c_crypt_temp, text_length);
+    return status;
+}
+#endif 
 

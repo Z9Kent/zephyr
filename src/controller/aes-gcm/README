@@ -3,7 +3,9 @@
 # zephyr definitions don't interfere.
 
 # conditioned on `CONFIG_Z9_GCM_C`
-# rename all `mbedtls_*` variables `z9_*` to remove conflicts
+# convert to C++ and place in namesapce z9::z9_gcm_c to prevent naming conflicts
+# rename `MBEDTLS_*` #defines in `config.h` to `Z9_*` to prevent conflicts
+# use `std::` routines instead of `utils.c` methods
 
 # modified to use ROM for tables instead of RAM
 

@@ -30,16 +30,33 @@
  */
 
 #include <stdio.h>
+#if !defined(Z9_CONFIG_FILE)
+#include "config.h"
+#else
+#include Z9_CONFIG_FILE
+#endif
 
-#include "z9-gcm-c.h"
+#if defined(Z9_GCM_C)
+
+#include "gcm.h"
+
+#include "utils.h"
 
 #if defined(Z9_AESNI_C)
 #include "aesni.h"
 #endif
 
+#if defined(Z9_SELF_TEST) && defined(Z9_AES_C)
+#if defined(Z9_PLATFORM_C)
+#include "platform.h"
+#else
 #include <stdio.h>
-#define z9_printf printf
+#define mbedtls_printf printf
+#endif /* Z9_PLATFORM_C */
+#endif /* Z9_SELF_TEST && Z9_AES_C */
 
+namespace z9::z9_gcm
+{
 /*
  * 32-bit integer manipulation macros (big endian)
  */
@@ -64,16 +81,17 @@
 #endif
 
 /* Implementation that should never be optimized out by the compiler */
-static void z9_zeroize( void *v, size_t n ) {
-    volatile unsigned char *p = v; while( n-- ) *p++ = 0;
+static void mbedtls_zeroize( void *v, size_t n ) {
+    //volatile unsigned char *p = v; while( n-- ) *p++ = 0;
+    std::memset(v, 0, n);
 }
 
 /*
  * Initialize a context
  */
-void Z9_gcm_c_init( Z9_gcm_c_context *ctx )
+void mbedtls_gcm_init( mbedtls_gcm_context *ctx )
 {
-    memset( ctx, 0, sizeof( Z9_gcm_c_context ) );
+    memset( ctx, 0, sizeof( mbedtls_gcm_context ) );
 }
 
 /*
@@ -84,7 +102,7 @@ void Z9_gcm_c_init( Z9_gcm_c_context *ctx )
  * is the high-order bit of HH corresponds to P^0 and the low-order bit of HL
  * corresponds to P^127.
  */
-static int gcm_gen_table( Z9_gcm_c_context *ctx )
+static int gcm_gen_table( mbedtls_gcm_context *ctx )
 {
     int ret, i, j;
     uint64_t hi, lo;
@@ -93,7 +111,7 @@ static int gcm_gen_table( Z9_gcm_c_context *ctx )
     size_t olen = 0;
 
     memset( h, 0, 16 );
-    if( ( ret = z9_cipher_update( &ctx->cipher_ctx, h, 16, h, &olen ) ) != 0 )
+    if( ( ret = mbedtls_cipher_update( &ctx->cipher_ctx, h, 16, h, &olen ) ) != 0 )
         return( ret );
 
     /* pack h as two 64-bits ints, big-endian */
@@ -111,7 +129,7 @@ static int gcm_gen_table( Z9_gcm_c_context *ctx )
 
 #if defined(Z9_AESNI_C) && defined(Z9_HAVE_X86_64)
     /* With CLMUL support, we need only h, not the rest of the table */
-    if( z9_aesni_has_support( Z9_AESNI_CLMUL ) )
+    if( mbedtls_aesni_has_support( Z9_AESNI_CLMUL ) )
         return( 0 );
 #endif
 
@@ -144,15 +162,15 @@ static int gcm_gen_table( Z9_gcm_c_context *ctx )
     return( 0 );
 }
 
-int Z9_gcm_c_setkey( Z9_gcm_c_context *ctx,
-                        z9_cipher_id_t cipher,
+int mbedtls_gcm_setkey( mbedtls_gcm_context *ctx,
+                        mbedtls_cipher_id_t cipher,
                         const unsigned char *key,
                         unsigned int keybits )
 {
     int ret;
-    const z9_cipher_info_t *cipher_info;
+    const mbedtls_cipher_info_t *cipher_info;
 
-    cipher_info = z9_cipher_info_from_values( cipher, keybits, Z9_MODE_ECB );
+    cipher_info = mbedtls_cipher_info_from_values( cipher, keybits, Z9_MODE_ECB );
     if( cipher_info == NULL ) {
         printf("info bad\n"); 
         return( Z9_ERR_GCM_BAD_INPUT );
@@ -163,12 +181,12 @@ int Z9_gcm_c_setkey( Z9_gcm_c_context *ctx,
         return( Z9_ERR_GCM_BAD_INPUT );
     }
 
-    z9_cipher_free( &ctx->cipher_ctx );
+    mbedtls_cipher_free( &ctx->cipher_ctx );
 
-    if( ( ret = z9_cipher_setup( &ctx->cipher_ctx, cipher_info ) ) != 0 )
+    if( ( ret = mbedtls_cipher_setup( &ctx->cipher_ctx, cipher_info ) ) != 0 )
         return( ret );
 
-    if( ( ret = z9_cipher_setkey( &ctx->cipher_ctx, key, keybits,
+    if( ( ret = mbedtls_cipher_setkey( &ctx->cipher_ctx, key, keybits,
                                Z9_ENCRYPT ) ) != 0 )
     {
         return( ret );
@@ -197,7 +215,7 @@ static const uint64_t last4[16] =
  * Sets output to x times H using the precomputed tables.
  * x and output are seen as elements of GF(2^128) as in [MGV].
  */
-static void gcm_mult( Z9_gcm_c_context *ctx, const unsigned char x[16],
+static void gcm_mult( mbedtls_gcm_context *ctx, const unsigned char x[16],
                       unsigned char output[16] )
 {
     int i = 0;
@@ -205,7 +223,7 @@ static void gcm_mult( Z9_gcm_c_context *ctx, const unsigned char x[16],
     uint64_t zh, zl;
 
 #if defined(Z9_AESNI_C) && defined(Z9_HAVE_X86_64)
-    if( z9_aesni_has_support( Z9_AESNI_CLMUL ) ) {
+    if( mbedtls_aesni_has_support( Z9_AESNI_CLMUL ) ) {
         unsigned char h[16];
 
         PUT_UINT32_BE( ctx->HH[8] >> 32, h,  0 );
@@ -213,7 +231,7 @@ static void gcm_mult( Z9_gcm_c_context *ctx, const unsigned char x[16],
         PUT_UINT32_BE( ctx->HL[8] >> 32, h,  8 );
         PUT_UINT32_BE( ctx->HL[8],       h, 12 );
 
-        z9_aesni_gcm_mult( output, x, h );
+        mbedtls_aesni_gcm_mult( output, x, h );
         return;
     }
 #endif /* Z9_AESNI_C && Z9_HAVE_X86_64 */
@@ -253,7 +271,7 @@ static void gcm_mult( Z9_gcm_c_context *ctx, const unsigned char x[16],
     PUT_UINT32_BE( zl, output, 12 );
 }
 
-int Z9_gcm_c_starts( Z9_gcm_c_context *ctx,
+int mbedtls_gcm_starts( mbedtls_gcm_context *ctx,
                 int mode,
                 const unsigned char *iv,
                 size_t iv_len,
@@ -311,7 +329,7 @@ int Z9_gcm_c_starts( Z9_gcm_c_context *ctx,
         gcm_mult( ctx, ctx->y, ctx->y );
     }
 
-    if( ( ret = z9_cipher_update( &ctx->cipher_ctx, ctx->y, 16, ctx->base_ectr,
+    if( ( ret = mbedtls_cipher_update( &ctx->cipher_ctx, ctx->y, 16, ctx->base_ectr,
                              &olen ) ) != 0 )
     {
         printf("close\n"); 
@@ -336,7 +354,7 @@ int Z9_gcm_c_starts( Z9_gcm_c_context *ctx,
     return( 0 );
 }
 
-int Z9_gcm_c_update( Z9_gcm_c_context *ctx,
+int mbedtls_gcm_update( mbedtls_gcm_context *ctx,
                 size_t length,
                 const unsigned char *input,
                 unsigned char *output )
@@ -370,7 +388,7 @@ int Z9_gcm_c_update( Z9_gcm_c_context *ctx,
             if( ++ctx->y[i - 1] != 0 )
                 break;
 
-        if( ( ret = z9_cipher_update( &ctx->cipher_ctx, ctx->y, 16, ectr,
+        if( ( ret = mbedtls_cipher_update( &ctx->cipher_ctx, ctx->y, 16, ectr,
                                    &olen ) ) != 0 )
         {
             return( ret );
@@ -395,7 +413,7 @@ int Z9_gcm_c_update( Z9_gcm_c_context *ctx,
     return( 0 );
 }
 
-int Z9_gcm_c_finish( Z9_gcm_c_context *ctx,
+int mbedtls_gcm_finish( mbedtls_gcm_context *ctx,
                 unsigned char *tag,
                 size_t tag_len )
 {
@@ -431,7 +449,7 @@ int Z9_gcm_c_finish( Z9_gcm_c_context *ctx,
     return( 0 );
 }
 
-int Z9_gcm_c_crypt_and_tag( Z9_gcm_c_context *ctx,
+int mbedtls_gcm_crypt_and_tag( mbedtls_gcm_context *ctx,
                        int mode,
                        size_t length,
                        const unsigned char *iv,
@@ -445,17 +463,17 @@ int Z9_gcm_c_crypt_and_tag( Z9_gcm_c_context *ctx,
 {
     int ret;
 
-    if( ( ret = Z9_gcm_c_starts( ctx, mode, iv, iv_len, add, add_len ) ) != 0 ) {
+    if( ( ret = mbedtls_gcm_starts( ctx, mode, iv, iv_len, add, add_len ) ) != 0 ) {
         printf("one\n");
         return( ret );
     }
 
-    if( ( ret = Z9_gcm_c_update( ctx, length, input, output ) ) != 0 ) {
+    if( ( ret = mbedtls_gcm_update( ctx, length, input, output ) ) != 0 ) {
         printf("two\n");
         return( ret );
     }
 
-    if( ( ret = Z9_gcm_c_finish( ctx, tag, tag_len ) ) != 0 ) {
+    if( ( ret = mbedtls_gcm_finish( ctx, tag, tag_len ) ) != 0 ) {
         printf("three\n");
         return( ret );
     }
@@ -463,7 +481,7 @@ int Z9_gcm_c_crypt_and_tag( Z9_gcm_c_context *ctx,
     return( 0 );
 }
 
-int Z9_gcm_c_auth_decrypt( Z9_gcm_c_context *ctx,
+int mbedtls_gcm_auth_decrypt( mbedtls_gcm_context *ctx,
                       size_t length,
                       const unsigned char *iv,
                       size_t iv_len,
@@ -479,7 +497,7 @@ int Z9_gcm_c_auth_decrypt( Z9_gcm_c_context *ctx,
     size_t i;
     int diff;
 
-    if( ( ret = Z9_gcm_c_crypt_and_tag( ctx, Z9_GCM_DECRYPT, length,
+    if( ( ret = mbedtls_gcm_crypt_and_tag( ctx, Z9_GCM_DECRYPT, length,
                                    iv, iv_len, add, add_len,
                                    input, output, tag_len, check_tag ) ) != 0 )
     {
@@ -492,17 +510,17 @@ int Z9_gcm_c_auth_decrypt( Z9_gcm_c_context *ctx,
 
     if( diff != 0 )
     {
-        z9_zeroize( output, length );
+        mbedtls_zeroize( output, length );
         return( Z9_ERR_GCM_AUTH_FAILED );
     }
 
     return( 0 );
 }
 
-void Z9_gcm_c_free( Z9_gcm_c_context *ctx )
+void mbedtls_gcm_free( mbedtls_gcm_context *ctx )
 {
-    z9_cipher_free( &ctx->cipher_ctx );
-    z9_zeroize( ctx, sizeof( Z9_gcm_c_context ) );
+    mbedtls_cipher_free( &ctx->cipher_ctx );
+    mbedtls_zeroize( ctx, sizeof( mbedtls_gcm_context ) );
 }
 
 #if defined(Z9_SELF_TEST) && defined(Z9_AES_C)
@@ -733,15 +751,15 @@ static const unsigned char tag[MAX_TESTS * 3][16] =
       0xc8, 0xb5, 0xd4, 0xcf, 0x5a, 0xe9, 0xf1, 0x9a },
 };
 
-int Z9_gcm_c_self_test( int verbose )
+int mbedtls_gcm_self_test( int verbose )
 {
-    Z9_gcm_c_context ctx;
+    mbedtls_gcm_context ctx;
     unsigned char buf[64];
     unsigned char tag_buf[16];
     int i, j, ret;
-    z9_cipher_id_t cipher = Z9_CIPHER_ID_AES;
+    mbedtls_cipher_id_t cipher = Z9_CIPHER_ID_AES;
 
-    Z9_gcm_c_init( &ctx );
+    mbedtls_gcm_init( &ctx );
 
     for( j = 0; j < 3; j++ )
     {
@@ -750,12 +768,12 @@ int Z9_gcm_c_self_test( int verbose )
         for( i = 0; i < MAX_TESTS; i++ )
         {
             if( verbose != 0 )
-                z9_printf( "  AES-GCM-%3d #%d (%s): ",
+                mbedtls_printf( "  AES-GCM-%3d #%d (%s): ",
                                  key_len, i, "enc" );
 
-            Z9_gcm_c_setkey( &ctx, cipher, key[key_index[i]], key_len );
+            mbedtls_gcm_setkey( &ctx, cipher, key[key_index[i]], key_len );
 
-            ret = Z9_gcm_c_crypt_and_tag( &ctx, Z9_GCM_ENCRYPT,
+            ret = mbedtls_gcm_crypt_and_tag( &ctx, Z9_GCM_ENCRYPT,
                                      pt_len[i],
                                      iv[iv_index[i]], iv_len[i],
                                      additional[add_index[i]], add_len[i],
@@ -766,23 +784,23 @@ int Z9_gcm_c_self_test( int verbose )
                 memcmp( tag_buf, tag[j * 6 + i], 16 ) != 0 )
             {
                 if( verbose != 0 )
-                    z9_printf( "failed\n" );
+                    mbedtls_printf( "failed\n" );
 
                 return( 1 );
             }
 
-            Z9_gcm_c_free( &ctx );
+            mbedtls_gcm_free( &ctx );
 
             if( verbose != 0 )
-                z9_printf( "passed\n" );
+                mbedtls_printf( "passed\n" );
 
             if( verbose != 0 )
-                z9_printf( "  AES-GCM-%3d #%d (%s): ",
+                mbedtls_printf( "  AES-GCM-%3d #%d (%s): ",
                                  key_len, i, "dec" );
 
-            Z9_gcm_c_setkey( &ctx, cipher, key[key_index[i]], key_len );
+            mbedtls_gcm_setkey( &ctx, cipher, key[key_index[i]], key_len );
 
-            ret = Z9_gcm_c_crypt_and_tag( &ctx, Z9_GCM_DECRYPT,
+            ret = mbedtls_gcm_crypt_and_tag( &ctx, Z9_GCM_DECRYPT,
                                      pt_len[i],
                                      iv[iv_index[i]], iv_len[i],
                                      additional[add_index[i]], add_len[i],
@@ -793,29 +811,29 @@ int Z9_gcm_c_self_test( int verbose )
                 memcmp( tag_buf, tag[j * 6 + i], 16 ) != 0 )
             {
                 if( verbose != 0 )
-                    z9_printf( "failed\n" );
+                    mbedtls_printf( "failed\n" );
 
                 return( 1 );
             }
 
-            Z9_gcm_c_free( &ctx );
+            mbedtls_gcm_free( &ctx );
 
             if( verbose != 0 )
-                z9_printf( "passed\n" );
+                mbedtls_printf( "passed\n" );
 
             if( verbose != 0 )
-                z9_printf( "  AES-GCM-%3d #%d split (%s): ",
+                mbedtls_printf( "  AES-GCM-%3d #%d split (%s): ",
                                  key_len, i, "enc" );
 
-            Z9_gcm_c_setkey( &ctx, cipher, key[key_index[i]], key_len );
+            mbedtls_gcm_setkey( &ctx, cipher, key[key_index[i]], key_len );
 
-            ret = Z9_gcm_c_starts( &ctx, Z9_GCM_ENCRYPT,
+            ret = mbedtls_gcm_starts( &ctx, Z9_GCM_ENCRYPT,
                               iv[iv_index[i]], iv_len[i],
                               additional[add_index[i]], add_len[i] );
             if( ret != 0 )
             {
                 if( verbose != 0 )
-                    z9_printf( "failed\n" );
+                    mbedtls_printf( "failed\n" );
 
                 return( 1 );
             }
@@ -823,66 +841,66 @@ int Z9_gcm_c_self_test( int verbose )
             if( pt_len[i] > 32 )
             {
                 size_t rest_len = pt_len[i] - 32;
-                ret = Z9_gcm_c_update( &ctx, 32, pt[pt_index[i]], buf );
+                ret = mbedtls_gcm_update( &ctx, 32, pt[pt_index[i]], buf );
                 if( ret != 0 )
                 {
                     if( verbose != 0 )
-                        z9_printf( "failed\n" );
+                        mbedtls_printf( "failed\n" );
 
                     return( 1 );
                 }
 
-                ret = Z9_gcm_c_update( &ctx, rest_len, pt[pt_index[i]] + 32,
+                ret = mbedtls_gcm_update( &ctx, rest_len, pt[pt_index[i]] + 32,
                                   buf + 32 );
                 if( ret != 0 )
                 {
                     if( verbose != 0 )
-                        z9_printf( "failed\n" );
+                        mbedtls_printf( "failed\n" );
 
                     return( 1 );
                 }
             }
             else
             {
-                ret = Z9_gcm_c_update( &ctx, pt_len[i], pt[pt_index[i]], buf );
+                ret = mbedtls_gcm_update( &ctx, pt_len[i], pt[pt_index[i]], buf );
                 if( ret != 0 )
                 {
                     if( verbose != 0 )
-                        z9_printf( "failed\n" );
+                        mbedtls_printf( "failed\n" );
 
                     return( 1 );
                 }
             }
 
-            ret = Z9_gcm_c_finish( &ctx, tag_buf, 16 );
+            ret = mbedtls_gcm_finish( &ctx, tag_buf, 16 );
             if( ret != 0 ||
                 memcmp( buf, ct[j * 6 + i], pt_len[i] ) != 0 ||
                 memcmp( tag_buf, tag[j * 6 + i], 16 ) != 0 )
             {
                 if( verbose != 0 )
-                    z9_printf( "failed\n" );
+                    mbedtls_printf( "failed\n" );
 
                 return( 1 );
             }
 
-            Z9_gcm_c_free( &ctx );
+            mbedtls_gcm_free( &ctx );
 
             if( verbose != 0 )
-                z9_printf( "passed\n" );
+                mbedtls_printf( "passed\n" );
 
             if( verbose != 0 )
-                z9_printf( "  AES-GCM-%3d #%d split (%s): ",
+                mbedtls_printf( "  AES-GCM-%3d #%d split (%s): ",
                                  key_len, i, "dec" );
 
-            Z9_gcm_c_setkey( &ctx, cipher, key[key_index[i]], key_len );
+            mbedtls_gcm_setkey( &ctx, cipher, key[key_index[i]], key_len );
 
-            ret = Z9_gcm_c_starts( &ctx, Z9_GCM_DECRYPT,
+            ret = mbedtls_gcm_starts( &ctx, Z9_GCM_DECRYPT,
                               iv[iv_index[i]], iv_len[i],
                               additional[add_index[i]], add_len[i] );
             if( ret != 0 )
             {
                 if( verbose != 0 )
-                    z9_printf( "failed\n" );
+                    mbedtls_printf( "failed\n" );
 
                 return( 1 );
             }
@@ -890,59 +908,66 @@ int Z9_gcm_c_self_test( int verbose )
             if( pt_len[i] > 32 )
             {
                 size_t rest_len = pt_len[i] - 32;
-                ret = Z9_gcm_c_update( &ctx, 32, ct[j * 6 + i], buf );
+                ret = mbedtls_gcm_update( &ctx, 32, ct[j * 6 + i], buf );
                 if( ret != 0 )
                 {
                     if( verbose != 0 )
-                        z9_printf( "failed\n" );
+                        mbedtls_printf( "failed\n" );
 
                     return( 1 );
                 }
 
-                ret = Z9_gcm_c_update( &ctx, rest_len, ct[j * 6 + i] + 32,
+                ret = mbedtls_gcm_update( &ctx, rest_len, ct[j * 6 + i] + 32,
                                   buf + 32 );
                 if( ret != 0 )
                 {
                     if( verbose != 0 )
-                        z9_printf( "failed\n" );
+                        mbedtls_printf( "failed\n" );
 
                     return( 1 );
                 }
             }
             else
             {
-                ret = Z9_gcm_c_update( &ctx, pt_len[i], ct[j * 6 + i], buf );
+                ret = mbedtls_gcm_update( &ctx, pt_len[i], ct[j * 6 + i], buf );
                 if( ret != 0 )
                 {
                     if( verbose != 0 )
-                        z9_printf( "failed\n" );
+                        mbedtls_printf( "failed\n" );
 
                     return( 1 );
                 }
             }
 
-            ret = Z9_gcm_c_finish( &ctx, tag_buf, 16 );
+            ret = mbedtls_gcm_finish( &ctx, tag_buf, 16 );
             if( ret != 0 ||
                 memcmp( buf, pt[pt_index[i]], pt_len[i] ) != 0 ||
                 memcmp( tag_buf, tag[j * 6 + i], 16 ) != 0 )
             {
                 if( verbose != 0 )
-                    z9_printf( "failed\n" );
+                    mbedtls_printf( "failed\n" );
 
                 return( 1 );
             }
 
-            Z9_gcm_c_free( &ctx );
+            mbedtls_gcm_free( &ctx );
 
             if( verbose != 0 )
-                z9_printf( "passed\n" );
+                mbedtls_printf( "passed\n" );
 
         }
     }
 
     if( verbose != 0 )
-        z9_printf( "\n" );
+        mbedtls_printf( "\n" );
 
     return( 0 );
 }
 
+#endif /* Z9_SELF_TEST && Z9_AES_C */
+}
+#endif /* Z9_GCM_C */
+/*int main(void) {*/
+    /*[>printf("hi");<]*/
+    /*return 0;*/
+/*}*/

@@ -3,7 +3,7 @@
 // Store settings in NV flash using the `settings` Zephyr module
 #include "Settings.h"
 #include "Z9Lock_status.h"          // update "paired" mode
-#include "Z9Crypto.h"
+#include "Z9Crypto_gcm.h"
 
 #include <zephyr/device.h>
 #include <zephyr/drivers/flash.h>
@@ -24,7 +24,7 @@ uint8_t noc_public_key[65];
 uint8_t noc_derived_key[16];
 
 // key handles for PSA
-psa_key_id_t noc_key_handle;
+gcm_key_id_t noc_key_handle;
 
 void nvm_settings_reset()
 {
@@ -60,8 +60,16 @@ void nvm_settings_init()
 	fs.sector_count = 3U;
 
 	rc = nvs_mount(&fs);
-	if (rc) {
-		printk("Flash Init failed\n");
+	if (rc)
+    {
+		printk("%s: Flash Init failed\n", __func__);
+  #if 0
+        const flash_area *fa_p;
+        rc = flash_area_open(fixed_area_id, &fa_p);
+        flash_area_erase(fa_p, 0, fa_p->fa_size);   // erase everything...
+        printk("%s: flash_area erased: %d\n", __func__);
+        rc = fcb_init(fixed_area_id, &file);        // and retry...
+  #endif
 		goto construction;
 	}
 

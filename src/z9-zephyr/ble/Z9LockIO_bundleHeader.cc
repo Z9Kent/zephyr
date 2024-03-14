@@ -139,7 +139,7 @@ void Z9LockIO_sendBundle(KCB& kcb)
     if (opaque)
     {
         // select key based on destination
-        psa_key_handle_t *key_p {};
+        gcm_key_handle_t *key_p {};
         const char *keyName = "UNKNOWN KEY";
         switch (p->destination)
         {

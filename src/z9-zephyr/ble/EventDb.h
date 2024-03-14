@@ -81,7 +81,14 @@ struct LockEventFs
         if (rc < 0)
             printk("%s: flash_area_get_sectors failed: %d\n", __func__, rc);
         else if ((rc = fcb_init(fixed_area_id, &file)))
+        {
             printk("%s: fcb_init failed: %d\n", __func__, rc);
+            const flash_area *fa_p;
+            rc = flash_area_open(fixed_area_id, &fa_p);
+            flash_area_erase(fa_p, 0, fa_p->fa_size);   // erase everything...
+            printk("%s: flash_area erased\n", __func__);
+            rc = fcb_init(fixed_area_id, &file);        // and retry...
+        }
         else
             printk("%s: fcb_init complete\n", __func__);
 

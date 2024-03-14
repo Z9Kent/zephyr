@@ -32,14 +32,14 @@
 
 #pragma once
 
-#include "Z9Crypto.h"
+#include "Z9Crypto_gcm.h"
 #include "KernelCharacterBuffer.h"
 #include <cstdint>
 
 
 // IV arg is for unit test
-z9_error_t Z9Crypto_gcm_encrypt_KCB(psa_key_id_t key, KCB& kcb, uint8_t *prefix = {}, uint8_t prefix_len = 0, uint8_t *iv = {});
-z9_error_t Z9Crypto_gcm_decrypt_KCB(psa_key_id_t key, KCB& kcb, uint8_t *prefix = {}, uint8_t prefix_len = 0);
+z9_error_t Z9Crypto_gcm_encrypt_KCB(gcm_key_id_t const& key, KCB& kcb, uint8_t *prefix = {}, uint8_t prefix_len = 0, uint8_t *iv = {});
+z9_error_t Z9Crypto_gcm_decrypt_KCB(gcm_key_id_t const& key, KCB& kcb, uint8_t *prefix = {}, uint8_t prefix_len = 0);
 
 #if 0
 // the IV argument is for unitTests

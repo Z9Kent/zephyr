@@ -55,10 +55,10 @@
 using z9_error_t = const char *;
 
 // create GSM key from raw bytes
-psa_key_id_t Z9Crypto_setKey(uint8_t *key, uint16_t key_bytes);
+gcm_key_id_t Z9Crypto_setKey(uint8_t *key, uint16_t key_bytes);
 
 // remove key when complete
-void Z9Crypto_destroyKey(psa_key_id_t& handle);
+void Z9Crypto_destroyKey(gcm_key_id_t& handle);
 
 // generate a 128 bit random number
 uint8_t *Z9Crypto_random();

@@ -10,21 +10,26 @@
 LOG_MODULE_REGISTER(Crypto, LOG_LEVEL_DBG);
 
 //z9_error_t Z9Crypto_gcm_encrypt_KCB(KCB& kcb, uint8_t *iv = {});
+static constexpr unsigned GCM_BUFFER_SIZE = 512;
+static uint8_t output_buffer[GCM_BUFFER_SIZE];
 
-z9_error_t Z9Crypto_gcm_decrypt_KCB(psa_key_id_t key, KCB& kcb, uint8_t *prefix, uint8_t prefix_len)
+z9_error_t Z9Crypto_gcm_decrypt_KCB(gcm_key_id_t const& key, KCB& kcb, uint8_t *prefix, uint8_t prefix_len)
 {
     // psa doesn't allow same input & output.
     // until I can fix it, decrypt into 1K buffer, then copy decrypted data back to KCB
     // use static buffer: don't have stack space
-    static uint8_t buffer[1024];
 
     LOG_INF("%s: kcb=%d, len=%d", __func__, kcb.id(), kcb.size());
     auto iv  = kcb.consumeHeadroom(12);     // IV is first
     auto tag = kcb.consumeHeadroom(16);     // TAG is next
     auto len = kcb.top().length();          // bytes to decrypt
 
-    psa_status_t status;
+    //gcm_status_t status;
+    auto output = output_buffer;
+    kcb_headroom_t available;
+    size_t decrypted {};
 
+#if 0
     psa_aead_operation_t operation = PSA_AEAD_OPERATION_INIT;
     printk("%s: key = %d (%08x)\n", __func__, key, key);
     //print_hex(__func__, "input", text, text_length);
@@ -48,9 +53,6 @@ z9_error_t Z9Crypto_gcm_decrypt_KCB(psa_key_id_t key, KCB& kcb, uint8_t *prefix,
             printk("%s: error: psa_aead_set_nonce: %d\n", __func__, status);
         }
 
-    auto output = buffer;
-    kcb_headroom_t available;
-    size_t decrypted;
 
     // loop thru buffer, decrypting
     while (auto p = kcb.currentBlock(available))
@@ -62,20 +64,34 @@ z9_error_t Z9Crypto_gcm_decrypt_KCB(psa_key_id_t key, KCB& kcb, uint8_t *prefix,
     // validate tag & get final decrypted bytes
     auto result = psa_aead_verify(&operation, output, sizeof(buffer), &decrypted, tag, 16);
     output += decrypted;
+#else
+    // temp gcm implementation only takes whole buffers
+    auto s = output_buffer;
+    while (auto p = kcb.currentBlock(available))
+    {
+        std::memcpy(s, p, available);
+        s += available;
+        decrypted += available;
+    }
 
-    LOG_INF("%s: result=%d, input=%d bytes, output=%d", __func__, result, len, output-buffer);
-    LOG_HEXDUMP_INF(buffer, 16, "decrypted");
+    auto result = Z9Crypto_gcm_decrypt(key, iv, {}, 0, output_buffer, decrypted, tag, 16);
+    output = &output_buffer[decrypted];
+
+#endif 
+
+    LOG_INF("%s: result=%d, input=%d bytes, output=%d", __func__, result, len, output-output_buffer);
+    LOG_HEXDUMP_INF(output_buffer, 16, "decrypted");
     if (result)
         return "GCM AUTH FAIL";
     
-    printk("%s: Decrypt OK: input=%u bytes, output=%u, pfx_len=%u\n", __func__, len, output-buffer, prefix_len);
+    printk("%s: Decrypt OK: input=%u bytes, output=%u, pfx_len=%u\n", __func__, len, output-output_buffer, prefix_len);
 
     // now put decrypted data back in KCB
     kcb.flush(10);
     // add prefix
     while(prefix_len--) kcb.write(*prefix++);
     
-    output = buffer;
+    output = output_buffer;
     while(len--)
         kcb.write(*output++);
     kcb.top();
@@ -83,12 +99,11 @@ z9_error_t Z9Crypto_gcm_decrypt_KCB(psa_key_id_t key, KCB& kcb, uint8_t *prefix,
     return {};
 }
 
-z9_error_t Z9Crypto_gcm_encrypt_KCB(psa_key_id_t key, KCB& kcb, uint8_t *prefix, uint8_t prefix_len, uint8_t *iv_data)
+z9_error_t Z9Crypto_gcm_encrypt_KCB(gcm_key_id_t const& key, KCB& kcb, uint8_t *prefix, uint8_t prefix_len, uint8_t *iv_data)
 {
     // psa doesn't allow same input & output.
     // until I can fix it, decrypt into 1K buffer, then copy decrypted data back to KCB
     // use static buffer: don't have stack space
-    static uint8_t buffer[1024];
 
     LOG_INF("%s: kcb=%d, len=%d", __func__, kcb.id(), kcb.size());
     auto len = kcb.top().length();          // bytes to encrypt
@@ -106,30 +121,45 @@ z9_error_t Z9Crypto_gcm_encrypt_KCB(psa_key_id_t key, KCB& kcb, uint8_t *prefix,
     // save IV
     std::memcpy(iv, iv_data, sizeof(iv));
 
+    auto output = output_buffer;
+    kcb_headroom_t available;
+    size_t encrypted {};
+
+#if 0
     // psa altorithm
     psa_aead_operation_t operation = PSA_AEAD_OPERATION_INIT;
     psa_aead_encrypt_setup(&operation, key, PSA_ALG_GCM);
     psa_aead_set_lengths(&operation, 0, len);
     psa_aead_set_nonce(&operation, iv, 12);
 
-    auto output = buffer;
-    kcb_headroom_t available;
-    size_t encrypted;
-
     // loop thru buffer, decrypting
     while (auto p = kcb.currentBlock(available))
     {
-        psa_aead_update(&operation, p, available, output, sizeof(buffer), &encrypted);
+        psa_aead_update(&operation, p, available, output, sizeof(output_buffer), &encrypted);
         output += encrypted;
     }
 
     // validate tag & get final decrypted bytes
     size_t tag_length;
-    auto result = psa_aead_finish(&operation, output, sizeof(buffer), &encrypted, tag, 16, &tag_length);
+    auto result = psa_aead_finish(&operation, output, sizeof(output_buffer), &encrypted, tag, 16, &tag_length);
     output += encrypted;
+#else 
+    // temp gcm implementation only takes whole buffers
+    auto s = output_buffer;
+    while (auto p = kcb.currentBlock(available))
+    {
+        std::memcpy(s, p, available);
+        s += available;
+        encrypted += available;
+    }
 
-    LOG_INF("%s: result=%d, input=%d bytes, output=%d", __func__, result, len, output-buffer);
-    LOG_HEXDUMP_INF(buffer, 16, "encrypted");
+    int result = Z9Crypto_gcm_encrypt(key, iv, {}, 0, output_buffer, encrypted, tag, 16);
+    output = &output_buffer[encrypted];
+
+#endif
+
+    LOG_INF("%s: result=%d, input=%d bytes, output=%d", __func__, result, len, output-output_buffer);
+    LOG_HEXDUMP_INF(output_buffer, 16, "encrypted");
     if (result)
         return "GCM AUTH FAIL";
 
@@ -147,7 +177,7 @@ z9_error_t Z9Crypto_gcm_encrypt_KCB(psa_key_id_t key, KCB& kcb, uint8_t *prefix,
     n = 16;
     while(n--) kcb.write(*output++);
 
-    output = buffer;
+    output = output_buffer;
     while(len--)
         kcb.write(*output++);
     kcb.top();

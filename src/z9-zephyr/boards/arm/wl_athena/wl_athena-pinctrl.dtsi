@@ -8,13 +8,34 @@
 #include <dt-bindings/pinctrl/saml22g-pinctrl.h>
 
 &pinctrl {
+	// SPI to flash
 	sercom0_default: sercom0_default {
 		group1 { 
 			pinmux = <PA20C_SERCOM0_PAD0>, 
 			   		 <PA21C_SERCOM0_PAD1>,
 			   		 <PA22C_SERCOM0_PAD2>;
+			bias-pull-up;
 		};
 	};
+   
+	// SPI to flash
+	sercom2_default: sercom2_default {
+		group1 { 
+			pinmux = <PA20D_SERCOM2_PAD2>, 
+			   		 <PA21D_SERCOM2_PAD3>,
+			   		 <PA22D_SERCOM2_PAD0>;
+			bias-pull-up;
+		};
+	};
+   
+	// serial UART
+	sercom3_default: sercom3_default {
+		group1 {
+			pinmux = <PB2C_SERCOM3_PAD0>,
+				     <PB3C_SERCOM3_PAD1>;
+		};
+	};
+
 };
 /* 
 &pinctrl {

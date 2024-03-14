@@ -25,16 +25,39 @@
  *  http://csrc.nist.gov/publications/fips/fips197/fips-197.pdf
  */
 
-#include "z9-gcm-aes.h"
-#if defined(MBEDTLS_AESNI_C)
+
+#if !defined(Z9_CONFIG_FILE)
+#include "config.h"
+#else
+#include Z9_CONFIG_FILE
+#endif
+
+#if defined(Z9_AES_C)
+
+#include "aes.h"
+#if defined(Z9_PADLOCK_C)
+#include "padlock.h"
+#endif
+#if defined(Z9_AESNI_C)
 #include "aesni.h"
 #endif
 
-#if !defined(MBEDTLS_AES_ALT)
+#if defined(Z9_SELF_TEST)
+#if defined(Z9_PLATFORM_C)
+#include "platform.h"
+#else
+#include <stdio.h>
+#define mbedtls_printf printf
+#endif /* Z9_PLATFORM_C */
+#endif /* Z9_SELF_TEST */
 
-/* Implementation that should never be optimized out by the compiler */
-static void z9_gcm_c_zeroize( void *v, size_t n ) {
-    volatile unsigned char *p = v; while( n-- ) *p++ = 0;
+namespace z9::z9_gcm
+{
+#if !defined(Z9_AES_ALT)
+
+static void mbedtls_zeroize( void *v, size_t n ) {
+    //volatile unsigned char *p = v; while( n-- ) *p++ = 0;
+    std::memset(v, 0, n);
 }
 
 /*
@@ -60,12 +83,12 @@ static void z9_gcm_c_zeroize( void *v, size_t n ) {
 }
 #endif
 
-#if defined(MBEDTLS_PADLOCK_C) &&                      \
-    ( defined(MBEDTLS_HAVE_X86) || defined(MBEDTLS_PADLOCK_ALIGN16) )
+#if defined(Z9_PADLOCK_C) &&                      \
+    ( defined(Z9_HAVE_X86) || defined(Z9_PADLOCK_ALIGN16) )
 static int aes_padlock_ace = -1;
 #endif
 
-#if defined(MBEDTLS_AES_ROM_TABLES)
+#if defined(Z9_AES_ROM_TABLES)
 /*
  * Forward S-box
  */
@@ -330,7 +353,7 @@ static const uint32_t RCON[10] =
     0x0000001B, 0x00000036
 };
 
-#else /* MBEDTLS_AES_ROM_TABLES */
+#else /* Z9_AES_ROM_TABLES */
 
 /*
  * Forward S-box & tables
@@ -440,32 +463,32 @@ static void aes_gen_tables( void )
     }
 }
 
-#endif /* MBEDTLS_AES_ROM_TABLES */
+#endif /* Z9_AES_ROM_TABLES */
 
-void z9_gcm_c_aes_init( z9_gcm_c_aes_context *ctx )
+void mbedtls_aes_init( mbedtls_aes_context *ctx )
 {
-    memset( ctx, 0, sizeof( z9_gcm_c_aes_context ) );
+    memset( ctx, 0, sizeof( mbedtls_aes_context ) );
 }
 
-void z9_gcm_c_aes_free( z9_gcm_c_aes_context *ctx )
+void mbedtls_aes_free( mbedtls_aes_context *ctx )
 {
     if( ctx == NULL )
         return;
 
-    z9_gcm_c_zeroize( ctx, sizeof( z9_gcm_c_aes_context ) );
+    mbedtls_zeroize( ctx, sizeof( mbedtls_aes_context ) );
 }
 
 /*
  * AES key schedule (encryption)
  */
-#if !defined(MBEDTLS_AES_SETKEY_ENC_ALT)
-int z9_gcm_c_aes_setkey_enc( z9_gcm_c_aes_context *ctx, const unsigned char *key,
+#if !defined(Z9_AES_SETKEY_ENC_ALT)
+int mbedtls_aes_setkey_enc( mbedtls_aes_context *ctx, const unsigned char *key,
                     unsigned int keybits )
 {
     unsigned int i;
     uint32_t *RK;
 
-#if !defined(MBEDTLS_AES_ROM_TABLES)
+#if !defined(Z9_AES_ROM_TABLES)
     if( aes_init_done == 0 )
     {
         aes_gen_tables();
@@ -479,22 +502,22 @@ int z9_gcm_c_aes_setkey_enc( z9_gcm_c_aes_context *ctx, const unsigned char *key
         case 128: ctx->nr = 10; break;
         case 192: ctx->nr = 12; break;
         case 256: ctx->nr = 14; break;
-        default : return( MBEDTLS_ERR_AES_INVALID_KEY_LENGTH );
+        default : return( Z9_ERR_AES_INVALID_KEY_LENGTH );
     }
 
-#if defined(MBEDTLS_PADLOCK_C) && defined(MBEDTLS_PADLOCK_ALIGN16)
+#if defined(Z9_PADLOCK_C) && defined(Z9_PADLOCK_ALIGN16)
     if( aes_padlock_ace == -1 )
-        aes_padlock_ace = z9_gcm_c_padlock_has_support( MBEDTLS_PADLOCK_ACE );
+        aes_padlock_ace = mbedtls_padlock_has_support( Z9_PADLOCK_ACE );
 
     if( aes_padlock_ace )
-        ctx->rk = RK = MBEDTLS_PADLOCK_ALIGN16( ctx->buf );
+        ctx->rk = RK = Z9_PADLOCK_ALIGN16( ctx->buf );
     else
 #endif
     ctx->rk = RK = ctx->buf;
 
-#if defined(MBEDTLS_AESNI_C) && defined(MBEDTLS_HAVE_X86_64)
-    if( z9_gcm_c_aesni_has_support( MBEDTLS_AESNI_AES ) )
-        return( z9_gcm_c_aesni_setkey_enc( (unsigned char *) ctx->rk, key, keybits ) );
+#if defined(Z9_AESNI_C) && defined(Z9_HAVE_X86_64)
+    if( mbedtls_aesni_has_support( Z9_AESNI_AES ) )
+        return( mbedtls_aesni_setkey_enc( (unsigned char *) ctx->rk, key, keybits ) );
 #endif
 
     for( i = 0; i < ( keybits >> 5 ); i++ )
@@ -567,42 +590,42 @@ int z9_gcm_c_aes_setkey_enc( z9_gcm_c_aes_context *ctx, const unsigned char *key
 
     return( 0 );
 }
-#endif /* !MBEDTLS_AES_SETKEY_ENC_ALT */
+#endif /* !Z9_AES_SETKEY_ENC_ALT */
 
 /*
  * AES key schedule (decryption)
  */
-#if !defined(MBEDTLS_AES_SETKEY_DEC_ALT)
-int z9_gcm_c_aes_setkey_dec( z9_gcm_c_aes_context *ctx, const unsigned char *key,
+#if !defined(Z9_AES_SETKEY_DEC_ALT)
+int mbedtls_aes_setkey_dec( mbedtls_aes_context *ctx, const unsigned char *key,
                     unsigned int keybits )
 {
     int i, j, ret;
-    z9_gcm_c_aes_context cty;
+    mbedtls_aes_context cty;
     uint32_t *RK;
     uint32_t *SK;
 
-    z9_gcm_c_aes_init( &cty );
+    mbedtls_aes_init( &cty );
 
-#if defined(MBEDTLS_PADLOCK_C) && defined(MBEDTLS_PADLOCK_ALIGN16)
+#if defined(Z9_PADLOCK_C) && defined(Z9_PADLOCK_ALIGN16)
     if( aes_padlock_ace == -1 )
-        aes_padlock_ace = z9_gcm_c_padlock_has_support( MBEDTLS_PADLOCK_ACE );
+        aes_padlock_ace = mbedtls_padlock_has_support( Z9_PADLOCK_ACE );
 
     if( aes_padlock_ace )
-        ctx->rk = RK = MBEDTLS_PADLOCK_ALIGN16( ctx->buf );
+        ctx->rk = RK = Z9_PADLOCK_ALIGN16( ctx->buf );
     else
 #endif
     ctx->rk = RK = ctx->buf;
 
     /* Also checks keybits */
-    if( ( ret = z9_gcm_c_aes_setkey_enc( &cty, key, keybits ) ) != 0 )
+    if( ( ret = mbedtls_aes_setkey_enc( &cty, key, keybits ) ) != 0 )
         goto exit;
 
     ctx->nr = cty.nr;
 
-#if defined(MBEDTLS_AESNI_C) && defined(MBEDTLS_HAVE_X86_64)
-    if( z9_gcm_c_aesni_has_support( MBEDTLS_AESNI_AES ) )
+#if defined(Z9_AESNI_C) && defined(Z9_HAVE_X86_64)
+    if( mbedtls_aesni_has_support( Z9_AESNI_AES ) )
     {
-        z9_gcm_c_aesni_inverse_key( (unsigned char *) ctx->rk,
+        mbedtls_aesni_inverse_key( (unsigned char *) ctx->rk,
                            (const unsigned char *) cty.rk, ctx->nr );
         goto exit;
     }
@@ -632,11 +655,11 @@ int z9_gcm_c_aes_setkey_dec( z9_gcm_c_aes_context *ctx, const unsigned char *key
     *RK++ = *SK++;
 
 exit:
-    z9_gcm_c_aes_free( &cty );
+    mbedtls_aes_free( &cty );
 
     return( ret );
 }
-#endif /* !MBEDTLS_AES_SETKEY_DEC_ALT */
+#endif /* !Z9_AES_SETKEY_DEC_ALT */
 
 #define AES_FROUND(X0,X1,X2,X3,Y0,Y1,Y2,Y3)     \
 {                                               \
@@ -687,8 +710,8 @@ exit:
 /*
  * AES-ECB block encryption
  */
-#if !defined(MBEDTLS_AES_ENCRYPT_ALT)
-void z9_gcm_c_aes_encrypt( z9_gcm_c_aes_context *ctx,
+#if !defined(Z9_AES_ENCRYPT_ALT)
+void mbedtls_aes_encrypt( mbedtls_aes_context *ctx,
                           const unsigned char input[16],
                           unsigned char output[16] )
 {
@@ -739,13 +762,13 @@ void z9_gcm_c_aes_encrypt( z9_gcm_c_aes_context *ctx,
     PUT_UINT32_LE( X2, output,  8 );
     PUT_UINT32_LE( X3, output, 12 );
 }
-#endif /* !MBEDTLS_AES_ENCRYPT_ALT */
+#endif /* !Z9_AES_ENCRYPT_ALT */
 
 /*
  * AES-ECB block decryption
  */
-#if !defined(MBEDTLS_AES_DECRYPT_ALT)
-void z9_gcm_c_aes_decrypt( z9_gcm_c_aes_context *ctx,
+#if !defined(Z9_AES_DECRYPT_ALT)
+void mbedtls_aes_decrypt( mbedtls_aes_context *ctx,
                           const unsigned char input[16],
                           unsigned char output[16] )
 {
@@ -796,25 +819,25 @@ void z9_gcm_c_aes_decrypt( z9_gcm_c_aes_context *ctx,
     PUT_UINT32_LE( X2, output,  8 );
     PUT_UINT32_LE( X3, output, 12 );
 }
-#endif /* !MBEDTLS_AES_DECRYPT_ALT */
+#endif /* !Z9_AES_DECRYPT_ALT */
 
 /*
  * AES-ECB block encryption/decryption
  */
-int z9_gcm_c_aes_crypt_ecb( z9_gcm_c_aes_context *ctx,
+int mbedtls_aes_crypt_ecb( mbedtls_aes_context *ctx,
                     int mode,
                     const unsigned char input[16],
                     unsigned char output[16] )
 {
-#if defined(MBEDTLS_AESNI_C) && defined(MBEDTLS_HAVE_X86_64)
-    if( z9_gcm_c_aesni_has_support( MBEDTLS_AESNI_AES ) )
-        return( z9_gcm_c_aesni_crypt_ecb( ctx, mode, input, output ) );
+#if defined(Z9_AESNI_C) && defined(Z9_HAVE_X86_64)
+    if( mbedtls_aesni_has_support( Z9_AESNI_AES ) )
+        return( mbedtls_aesni_crypt_ecb( ctx, mode, input, output ) );
 #endif
 
-#if defined(MBEDTLS_PADLOCK_C) && defined(MBEDTLS_HAVE_X86)
+#if defined(Z9_PADLOCK_C) && defined(Z9_HAVE_X86)
     if( aes_padlock_ace )
     {
-        if( z9_gcm_c_padlock_xcryptecb( ctx, mode, input, output ) == 0 )
+        if( mbedtls_padlock_xcryptecb( ctx, mode, input, output ) == 0 )
             return( 0 );
 
         // If padlock data misaligned, we just fall back to
@@ -823,19 +846,19 @@ int z9_gcm_c_aes_crypt_ecb( z9_gcm_c_aes_context *ctx,
     }
 #endif
 
-    if( mode == MBEDTLS_AES_ENCRYPT )
-        z9_gcm_c_aes_encrypt( ctx, input, output );
+    if( mode == Z9_AES_ENCRYPT )
+        mbedtls_aes_encrypt( ctx, input, output );
     else
-        z9_gcm_c_aes_decrypt( ctx, input, output );
+        mbedtls_aes_decrypt( ctx, input, output );
 
     return( 0 );
 }
 
-#if defined(MBEDTLS_CIPHER_MODE_CBC)
+#if defined(Z9_CIPHER_MODE_CBC)
 /*
  * AES-CBC buffer encryption/decryption
  */
-int z9_gcm_c_aes_crypt_cbc( z9_gcm_c_aes_context *ctx,
+int mbedtls_aes_crypt_cbc( mbedtls_aes_context *ctx,
                     int mode,
                     size_t length,
                     unsigned char iv[16],
@@ -846,12 +869,12 @@ int z9_gcm_c_aes_crypt_cbc( z9_gcm_c_aes_context *ctx,
     unsigned char temp[16];
 
     if( length % 16 )
-        return( MBEDTLS_ERR_AES_INVALID_INPUT_LENGTH );
+        return( Z9_ERR_AES_INVALID_INPUT_LENGTH );
 
-#if defined(MBEDTLS_PADLOCK_C) && defined(MBEDTLS_HAVE_X86)
+#if defined(Z9_PADLOCK_C) && defined(Z9_HAVE_X86)
     if( aes_padlock_ace )
     {
-        if( z9_gcm_c_padlock_xcryptcbc( ctx, mode, length, iv, input, output ) == 0 )
+        if( mbedtls_padlock_xcryptcbc( ctx, mode, length, iv, input, output ) == 0 )
             return( 0 );
 
         // If padlock data misaligned, we just fall back to
@@ -860,12 +883,12 @@ int z9_gcm_c_aes_crypt_cbc( z9_gcm_c_aes_context *ctx,
     }
 #endif
 
-    if( mode == MBEDTLS_AES_DECRYPT )
+    if( mode == Z9_AES_DECRYPT )
     {
         while( length > 0 )
         {
             memcpy( temp, input, 16 );
-            z9_gcm_c_aes_crypt_ecb( ctx, mode, input, output );
+            mbedtls_aes_crypt_ecb( ctx, mode, input, output );
 
             for( i = 0; i < 16; i++ )
                 output[i] = (unsigned char)( output[i] ^ iv[i] );
@@ -884,7 +907,7 @@ int z9_gcm_c_aes_crypt_cbc( z9_gcm_c_aes_context *ctx,
             for( i = 0; i < 16; i++ )
                 output[i] = (unsigned char)( input[i] ^ iv[i] );
 
-            z9_gcm_c_aes_crypt_ecb( ctx, mode, output, output );
+            mbedtls_aes_crypt_ecb( ctx, mode, output, output );
             memcpy( iv, output, 16 );
 
             input  += 16;
@@ -895,13 +918,13 @@ int z9_gcm_c_aes_crypt_cbc( z9_gcm_c_aes_context *ctx,
 
     return( 0 );
 }
-#endif /* MBEDTLS_CIPHER_MODE_CBC */
+#endif /* Z9_CIPHER_MODE_CBC */
 
-#if defined(MBEDTLS_CIPHER_MODE_CFB)
+#if defined(Z9_CIPHER_MODE_CFB)
 /*
  * AES-CFB128 buffer encryption/decryption
  */
-int z9_gcm_c_aes_crypt_cfb128( z9_gcm_c_aes_context *ctx,
+int mbedtls_aes_crypt_cfb128( mbedtls_aes_context *ctx,
                        int mode,
                        size_t length,
                        size_t *iv_off,
@@ -912,12 +935,12 @@ int z9_gcm_c_aes_crypt_cfb128( z9_gcm_c_aes_context *ctx,
     int c;
     size_t n = *iv_off;
 
-    if( mode == MBEDTLS_AES_DECRYPT )
+    if( mode == Z9_AES_DECRYPT )
     {
         while( length-- )
         {
             if( n == 0 )
-                z9_gcm_c_aes_crypt_ecb( ctx, MBEDTLS_AES_ENCRYPT, iv, iv );
+                mbedtls_aes_crypt_ecb( ctx, Z9_AES_ENCRYPT, iv, iv );
 
             c = *input++;
             *output++ = (unsigned char)( c ^ iv[n] );
@@ -931,7 +954,7 @@ int z9_gcm_c_aes_crypt_cfb128( z9_gcm_c_aes_context *ctx,
         while( length-- )
         {
             if( n == 0 )
-                z9_gcm_c_aes_crypt_ecb( ctx, MBEDTLS_AES_ENCRYPT, iv, iv );
+                mbedtls_aes_crypt_ecb( ctx, Z9_AES_ENCRYPT, iv, iv );
 
             iv[n] = *output++ = (unsigned char)( iv[n] ^ *input++ );
 
@@ -947,7 +970,7 @@ int z9_gcm_c_aes_crypt_cfb128( z9_gcm_c_aes_context *ctx,
 /*
  * AES-CFB8 buffer encryption/decryption
  */
-int z9_gcm_c_aes_crypt_cfb8( z9_gcm_c_aes_context *ctx,
+int mbedtls_aes_crypt_cfb8( mbedtls_aes_context *ctx,
                        int mode,
                        size_t length,
                        unsigned char iv[16],
@@ -960,14 +983,14 @@ int z9_gcm_c_aes_crypt_cfb8( z9_gcm_c_aes_context *ctx,
     while( length-- )
     {
         memcpy( ov, iv, 16 );
-        z9_gcm_c_aes_crypt_ecb( ctx, MBEDTLS_AES_ENCRYPT, iv, iv );
+        mbedtls_aes_crypt_ecb( ctx, Z9_AES_ENCRYPT, iv, iv );
 
-        if( mode == MBEDTLS_AES_DECRYPT )
+        if( mode == Z9_AES_DECRYPT )
             ov[16] = *input;
 
         c = *output++ = (unsigned char)( iv[0] ^ *input++ );
 
-        if( mode == MBEDTLS_AES_ENCRYPT )
+        if( mode == Z9_AES_ENCRYPT )
             ov[16] = c;
 
         memcpy( iv, ov + 1, 16 );
@@ -975,13 +998,13 @@ int z9_gcm_c_aes_crypt_cfb8( z9_gcm_c_aes_context *ctx,
 
     return( 0 );
 }
-#endif /*MBEDTLS_CIPHER_MODE_CFB */
+#endif /*Z9_CIPHER_MODE_CFB */
 
-#if defined(MBEDTLS_CIPHER_MODE_CTR)
+#if defined(Z9_CIPHER_MODE_CTR)
 /*
  * AES-CTR buffer encryption/decryption
  */
-int z9_gcm_c_aes_crypt_ctr( z9_gcm_c_aes_context *ctx,
+int mbedtls_aes_crypt_ctr( mbedtls_aes_context *ctx,
                        size_t length,
                        size_t *nc_off,
                        unsigned char nonce_counter[16],
@@ -995,7 +1018,7 @@ int z9_gcm_c_aes_crypt_ctr( z9_gcm_c_aes_context *ctx,
     while( length-- )
     {
         if( n == 0 ) {
-            z9_gcm_c_aes_crypt_ecb( ctx, MBEDTLS_AES_ENCRYPT, nonce_counter, stream_block );
+            mbedtls_aes_crypt_ecb( ctx, Z9_AES_ENCRYPT, nonce_counter, stream_block );
 
             for( i = 16; i > 0; i-- )
                 if( ++nonce_counter[i - 1] != 0 )
@@ -1011,11 +1034,11 @@ int z9_gcm_c_aes_crypt_ctr( z9_gcm_c_aes_context *ctx,
 
     return( 0 );
 }
-#endif /* MBEDTLS_CIPHER_MODE_CTR */
+#endif /* Z9_CIPHER_MODE_CTR */
 
-#endif /* !MBEDTLS_AES_ALT */
+#endif /* !Z9_AES_ALT */
 
-#if defined(MBEDTLS_SELF_TEST)
+#if defined(Z9_SELF_TEST)
 /*
  * AES test vectors from:
  *
@@ -1041,7 +1064,7 @@ static const unsigned char aes_test_ecb_enc[3][16] =
       0xFF, 0x30, 0xB4, 0xEA, 0x21, 0x63, 0x6D, 0xA4 }
 };
 
-#if defined(MBEDTLS_CIPHER_MODE_CBC)
+#if defined(Z9_CIPHER_MODE_CBC)
 static const unsigned char aes_test_cbc_dec[3][16] =
 {
     { 0xFA, 0xCA, 0x37, 0xE0, 0xB0, 0xC8, 0x53, 0x73,
@@ -1061,9 +1084,9 @@ static const unsigned char aes_test_cbc_enc[3][16] =
     { 0xFE, 0x3C, 0x53, 0x65, 0x3E, 0x2F, 0x45, 0xB5,
       0x6F, 0xCD, 0x88, 0xB2, 0xCC, 0x89, 0x8F, 0xF0 }
 };
-#endif /* MBEDTLS_CIPHER_MODE_CBC */
+#endif /* Z9_CIPHER_MODE_CBC */
 
-#if defined(MBEDTLS_CIPHER_MODE_CFB)
+#if defined(Z9_CIPHER_MODE_CFB)
 /*
  * AES-CFB128 test vectors from:
  *
@@ -1127,9 +1150,9 @@ static const unsigned char aes_test_cfb128_ct[3][64] =
       0x75, 0xA3, 0x85, 0x74, 0x1A, 0xB9, 0xCE, 0xF8,
       0x20, 0x31, 0x62, 0x3D, 0x55, 0xB1, 0xE4, 0x71 }
 };
-#endif /* MBEDTLS_CIPHER_MODE_CFB */
+#endif /* Z9_CIPHER_MODE_CFB */
 
-#if defined(MBEDTLS_CIPHER_MODE_CTR)
+#if defined(Z9_CIPHER_MODE_CTR)
 /*
  * AES-CTR test vectors from:
  *
@@ -1190,32 +1213,32 @@ static const unsigned char aes_test_ctr_ct[3][48] =
 
 static const int aes_test_ctr_len[3] =
     { 16, 32, 36 };
-#endif /* MBEDTLS_CIPHER_MODE_CTR */
+#endif /* Z9_CIPHER_MODE_CTR */
 
 /*
  * Checkup routine
  */
-int z9_gcm_c_aes_self_test( int verbose )
+int mbedtls_aes_self_test( int verbose )
 {
     int ret = 0, i, j, u, v;
     unsigned char key[32];
     unsigned char buf[64];
     /*unsigned char iv[16];*/
-#if defined(MBEDTLS_CIPHER_MODE_CBC)
+#if defined(Z9_CIPHER_MODE_CBC)
     unsigned char prv[16];
 #endif
-#if defined(MBEDTLS_CIPHER_MODE_CTR) || defined(MBEDTLS_CIPHER_MODE_CFB)
+#if defined(Z9_CIPHER_MODE_CTR) || defined(Z9_CIPHER_MODE_CFB)
     size_t offset;
 #endif
-#if defined(MBEDTLS_CIPHER_MODE_CTR)
+#if defined(Z9_CIPHER_MODE_CTR)
     int len;
     unsigned char nonce_counter[16];
     unsigned char stream_block[16];
 #endif
-    z9_gcm_c_aes_context ctx;
+    mbedtls_aes_context ctx;
 
     memset( key, 0, 32 );
-    z9_gcm_c_aes_init( &ctx );
+    mbedtls_aes_init( &ctx );
 
     /*
      * ECB mode
@@ -1226,22 +1249,22 @@ int z9_gcm_c_aes_self_test( int verbose )
         v = i  & 1;
 
         if( verbose != 0 )
-            z9_gcm_c_printf( "  AES-ECB-%3d (%s): ", 128 + u * 64,
-                             ( v == MBEDTLS_AES_DECRYPT ) ? "dec" : "enc" );
+            mbedtls_printf( "  AES-ECB-%3d (%s): ", 128 + u * 64,
+                             ( v == Z9_AES_DECRYPT ) ? "dec" : "enc" );
 
         memset( buf, 0, 16 );
 
-        if( v == MBEDTLS_AES_DECRYPT )
+        if( v == Z9_AES_DECRYPT )
         {
-            z9_gcm_c_aes_setkey_dec( &ctx, key, 128 + u * 64 );
+            mbedtls_aes_setkey_dec( &ctx, key, 128 + u * 64 );
 
             for( j = 0; j < 10000; j++ )
-                z9_gcm_c_aes_crypt_ecb( &ctx, v, buf, buf );
+                mbedtls_aes_crypt_ecb( &ctx, v, buf, buf );
 
             if( memcmp( buf, aes_test_ecb_dec[u], 16 ) != 0 )
             {
                 if( verbose != 0 )
-                    z9_gcm_c_printf( "failed\n" );
+                    mbedtls_printf( "failed\n" );
 
                 ret = 1;
                 goto exit;
@@ -1249,15 +1272,15 @@ int z9_gcm_c_aes_self_test( int verbose )
         }
         else
         {
-            z9_gcm_c_aes_setkey_enc( &ctx, key, 128 + u * 64 );
+            mbedtls_aes_setkey_enc( &ctx, key, 128 + u * 64 );
 
             for( j = 0; j < 10000; j++ )
-                z9_gcm_c_aes_crypt_ecb( &ctx, v, buf, buf );
+                mbedtls_aes_crypt_ecb( &ctx, v, buf, buf );
 
             if( memcmp( buf, aes_test_ecb_enc[u], 16 ) != 0 )
             {
                 if( verbose != 0 )
-                    z9_gcm_c_printf( "failed\n" );
+                    mbedtls_printf( "failed\n" );
 
                 ret = 1;
                 goto exit;
@@ -1265,13 +1288,13 @@ int z9_gcm_c_aes_self_test( int verbose )
         }
 
         if( verbose != 0 )
-            z9_gcm_c_printf( "passed\n" );
+            mbedtls_printf( "passed\n" );
     }
 
     if( verbose != 0 )
-        z9_gcm_c_printf( "\n" );
+        mbedtls_printf( "\n" );
 
-#if defined(MBEDTLS_CIPHER_MODE_CBC)
+#if defined(Z9_CIPHER_MODE_CBC)
     /*
      * CBC mode
      */
@@ -1281,24 +1304,24 @@ int z9_gcm_c_aes_self_test( int verbose )
         v = i  & 1;
 
         if( verbose != 0 )
-            z9_gcm_c_printf( "  AES-CBC-%3d (%s): ", 128 + u * 64,
-                             ( v == MBEDTLS_AES_DECRYPT ) ? "dec" : "enc" );
+            mbedtls_printf( "  AES-CBC-%3d (%s): ", 128 + u * 64,
+                             ( v == Z9_AES_DECRYPT ) ? "dec" : "enc" );
 
         memset( iv , 0, 16 );
         memset( prv, 0, 16 );
         memset( buf, 0, 16 );
 
-        if( v == MBEDTLS_AES_DECRYPT )
+        if( v == Z9_AES_DECRYPT )
         {
-            z9_gcm_c_aes_setkey_dec( &ctx, key, 128 + u * 64 );
+            mbedtls_aes_setkey_dec( &ctx, key, 128 + u * 64 );
 
             for( j = 0; j < 10000; j++ )
-                z9_gcm_c_aes_crypt_cbc( &ctx, v, 16, iv, buf, buf );
+                mbedtls_aes_crypt_cbc( &ctx, v, 16, iv, buf, buf );
 
             if( memcmp( buf, aes_test_cbc_dec[u], 16 ) != 0 )
             {
                 if( verbose != 0 )
-                    z9_gcm_c_printf( "failed\n" );
+                    mbedtls_printf( "failed\n" );
 
                 ret = 1;
                 goto exit;
@@ -1306,13 +1329,13 @@ int z9_gcm_c_aes_self_test( int verbose )
         }
         else
         {
-            z9_gcm_c_aes_setkey_enc( &ctx, key, 128 + u * 64 );
+            mbedtls_aes_setkey_enc( &ctx, key, 128 + u * 64 );
 
             for( j = 0; j < 10000; j++ )
             {
                 unsigned char tmp[16];
 
-                z9_gcm_c_aes_crypt_cbc( &ctx, v, 16, iv, buf, buf );
+                mbedtls_aes_crypt_cbc( &ctx, v, 16, iv, buf, buf );
 
                 memcpy( tmp, prv, 16 );
                 memcpy( prv, buf, 16 );
@@ -1322,7 +1345,7 @@ int z9_gcm_c_aes_self_test( int verbose )
             if( memcmp( prv, aes_test_cbc_enc[u], 16 ) != 0 )
             {
                 if( verbose != 0 )
-                    z9_gcm_c_printf( "failed\n" );
+                    mbedtls_printf( "failed\n" );
 
                 ret = 1;
                 goto exit;
@@ -1330,14 +1353,14 @@ int z9_gcm_c_aes_self_test( int verbose )
         }
 
         if( verbose != 0 )
-            z9_gcm_c_printf( "passed\n" );
+            mbedtls_printf( "passed\n" );
     }
 
     if( verbose != 0 )
-        z9_gcm_c_printf( "\n" );
-#endif /* MBEDTLS_CIPHER_MODE_CBC */
+        mbedtls_printf( "\n" );
+#endif /* Z9_CIPHER_MODE_CBC */
 
-#if defined(MBEDTLS_CIPHER_MODE_CFB)
+#if defined(Z9_CIPHER_MODE_CFB)
     /*
      * CFB128 mode
      */
@@ -1347,24 +1370,24 @@ int z9_gcm_c_aes_self_test( int verbose )
         v = i  & 1;
 
         if( verbose != 0 )
-            z9_gcm_c_printf( "  AES-CFB128-%3d (%s): ", 128 + u * 64,
-                             ( v == MBEDTLS_AES_DECRYPT ) ? "dec" : "enc" );
+            mbedtls_printf( "  AES-CFB128-%3d (%s): ", 128 + u * 64,
+                             ( v == Z9_AES_DECRYPT ) ? "dec" : "enc" );
 
         memcpy( iv,  aes_test_cfb128_iv, 16 );
         memcpy( key, aes_test_cfb128_key[u], 16 + u * 8 );
 
         offset = 0;
-        z9_gcm_c_aes_setkey_enc( &ctx, key, 128 + u * 64 );
+        mbedtls_aes_setkey_enc( &ctx, key, 128 + u * 64 );
 
-        if( v == MBEDTLS_AES_DECRYPT )
+        if( v == Z9_AES_DECRYPT )
         {
             memcpy( buf, aes_test_cfb128_ct[u], 64 );
-            z9_gcm_c_aes_crypt_cfb128( &ctx, v, 64, &offset, iv, buf, buf );
+            mbedtls_aes_crypt_cfb128( &ctx, v, 64, &offset, iv, buf, buf );
 
             if( memcmp( buf, aes_test_cfb128_pt, 64 ) != 0 )
             {
                 if( verbose != 0 )
-                    z9_gcm_c_printf( "failed\n" );
+                    mbedtls_printf( "failed\n" );
 
                 ret = 1;
                 goto exit;
@@ -1373,12 +1396,12 @@ int z9_gcm_c_aes_self_test( int verbose )
         else
         {
             memcpy( buf, aes_test_cfb128_pt, 64 );
-            z9_gcm_c_aes_crypt_cfb128( &ctx, v, 64, &offset, iv, buf, buf );
+            mbedtls_aes_crypt_cfb128( &ctx, v, 64, &offset, iv, buf, buf );
 
             if( memcmp( buf, aes_test_cfb128_ct[u], 64 ) != 0 )
             {
                 if( verbose != 0 )
-                    z9_gcm_c_printf( "failed\n" );
+                    mbedtls_printf( "failed\n" );
 
                 ret = 1;
                 goto exit;
@@ -1386,14 +1409,14 @@ int z9_gcm_c_aes_self_test( int verbose )
         }
 
         if( verbose != 0 )
-            z9_gcm_c_printf( "passed\n" );
+            mbedtls_printf( "passed\n" );
     }
 
     if( verbose != 0 )
-        z9_gcm_c_printf( "\n" );
-#endif /* MBEDTLS_CIPHER_MODE_CFB */
+        mbedtls_printf( "\n" );
+#endif /* Z9_CIPHER_MODE_CFB */
 
-#if defined(MBEDTLS_CIPHER_MODE_CTR)
+#if defined(Z9_CIPHER_MODE_CTR)
     /*
      * CTR mode
      */
@@ -1403,27 +1426,27 @@ int z9_gcm_c_aes_self_test( int verbose )
         v = i  & 1;
 
         if( verbose != 0 )
-            z9_gcm_c_printf( "  AES-CTR-128 (%s): ",
-                             ( v == MBEDTLS_AES_DECRYPT ) ? "dec" : "enc" );
+            mbedtls_printf( "  AES-CTR-128 (%s): ",
+                             ( v == Z9_AES_DECRYPT ) ? "dec" : "enc" );
 
         memcpy( nonce_counter, aes_test_ctr_nonce_counter[u], 16 );
         memcpy( key, aes_test_ctr_key[u], 16 );
 
         offset = 0;
-        z9_gcm_c_aes_setkey_enc( &ctx, key, 128 );
+        mbedtls_aes_setkey_enc( &ctx, key, 128 );
 
-        if( v == MBEDTLS_AES_DECRYPT )
+        if( v == Z9_AES_DECRYPT )
         {
             len = aes_test_ctr_len[u];
             memcpy( buf, aes_test_ctr_ct[u], len );
 
-            z9_gcm_c_aes_crypt_ctr( &ctx, len, &offset, nonce_counter, stream_block,
+            mbedtls_aes_crypt_ctr( &ctx, len, &offset, nonce_counter, stream_block,
                            buf, buf );
 
             if( memcmp( buf, aes_test_ctr_pt[u], len ) != 0 )
             {
                 if( verbose != 0 )
-                    z9_gcm_c_printf( "failed\n" );
+                    mbedtls_printf( "failed\n" );
 
                 ret = 1;
                 goto exit;
@@ -1434,13 +1457,13 @@ int z9_gcm_c_aes_self_test( int verbose )
             len = aes_test_ctr_len[u];
             memcpy( buf, aes_test_ctr_pt[u], len );
 
-            z9_gcm_c_aes_crypt_ctr( &ctx, len, &offset, nonce_counter, stream_block,
+            mbedtls_aes_crypt_ctr( &ctx, len, &offset, nonce_counter, stream_block,
                            buf, buf );
 
             if( memcmp( buf, aes_test_ctr_ct[u], len ) != 0 )
             {
                 if( verbose != 0 )
-                    z9_gcm_c_printf( "failed\n" );
+                    mbedtls_printf( "failed\n" );
 
                 ret = 1;
                 goto exit;
@@ -1448,21 +1471,23 @@ int z9_gcm_c_aes_self_test( int verbose )
         }
 
         if( verbose != 0 )
-            z9_gcm_c_printf( "passed\n" );
+            mbedtls_printf( "passed\n" );
     }
 
     if( verbose != 0 )
-        z9_gcm_c_printf( "\n" );
-#endif /* MBEDTLS_CIPHER_MODE_CTR */
+        mbedtls_printf( "\n" );
+#endif /* Z9_CIPHER_MODE_CTR */
 
     ret = 0;
 
 exit:
-    z9_gcm_c_aes_free( &ctx );
+    mbedtls_aes_free( &ctx );
 
     return( ret );
 }
 
-#endif /* MBEDTLS_SELF_TEST */
+#endif /* Z9_SELF_TEST */
+}
 
-#endif /* MBEDTLS_AES_C */
+#endif /* Z9_AES_C */
+

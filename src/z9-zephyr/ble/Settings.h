@@ -1,8 +1,8 @@
 // Settings.h
 
 #include <stdint.h>
-#include <psa/crypto.h>
-#include <psa/crypto_extra.h>
+
+#include "Z9Crypto_gcm.h"
 
 #pragma once
 
@@ -13,7 +13,7 @@ extern uint8_t noc_public_key[65];
 extern uint8_t noc_derived_key[16];
 
 // key handles for PSA
-extern psa_key_id_t noc_key_handle;
+extern gcm_key_id_t noc_key_handle;
 
 void nvm_settings_reset();
 void nvm_settings_init();

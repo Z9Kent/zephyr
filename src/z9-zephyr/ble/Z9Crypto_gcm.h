@@ -47,41 +47,61 @@
 
 #pragma once
 
+#ifdef CONFIG_Z9_GCM_C
+
+#include "aes-gcm/gcm.h"
+#include <cstdint>
+
+// don't use a "enumerated" key slot
+// just pass references to 16-byte key for _id_t & _handle_t
+using gcm_status_t     = int;
+using gcm_key_id_t     = unsigned char[16];
+using gcm_key_handle_t = const unsigned char[16];
+//using gcm_key_id_t     = z9::z9_gcm::mbedtls_gcm_context;
+
+
+#else
+
 #include <psa/crypto.h>
 #include <psa/crypto_extra.h>
 #include <cstdint>
 
+using gcm_status_t     = psa_status_t;
+using gcm_key_id_t     = psa_key_id_t;
+using gcm_key_handle_t = psa_key_handle_t;
+
+#endif
+
+
 using z9_error_t = const char *;
 
 // create GSM key from raw bytes
-psa_status_t Z9Crypto_gcmSetKey(psa_key_id_t& handle, const uint8_t *keyBytes, uint16_t numKeyBytes);
-
-
+gcm_status_t Z9Crypto_gcmSetKey(gcm_key_id_t& handle, const uint8_t *keyBytes, uint16_t numKeyBytes);
 
 // remove key when complete
-void Z9Crypto_destroyKey(psa_key_id_t& handle);
+void Z9Crypto_destroyKey(gcm_key_id_t& handle);
 
 // generate a 128 bit random number
 uint8_t *Z9Crypto_random();
 
 // encrypt / decrypt in place
-psa_status_t Z9Crypto_gcm_encrypt(psa_key_id_t const& key,
+gcm_status_t Z9Crypto_gcm_encrypt(gcm_key_id_t const& key,
                           const uint8_t *nonce,
                           const uint8_t *aad,
-                          size_t aad_length,
+                          std::size_t aad_length,
                           uint8_t *text,
-                          size_t  text_length,
+                          std::size_t  text_length,
                           uint8_t *tag,
-                          size_t  tag_length);
+                          std::size_t  tag_length);
 
-psa_status_t Z9Crypto_gcm_decrypt(psa_key_id_t const& key,
+gcm_status_t Z9Crypto_gcm_decrypt(gcm_key_id_t const& key,
                           const uint8_t *nonce,
                           const uint8_t *aad,
-                          size_t aad_length,
+                          std::size_t aad_length,
                           uint8_t *text,
-                          size_t  text_length,
+                          std::size_t  text_length,
                           uint8_t *tag,
-                          size_t  tag_length);
+                          std::size_t  tag_length);
 
 // XXX to be removed
 extern uint8_t raw_lock_public_key[33];

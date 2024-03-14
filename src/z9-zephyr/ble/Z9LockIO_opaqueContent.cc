@@ -19,7 +19,7 @@ using z9::protocols::z9lockio::getFormatter;
 
 void Z9LockIO_opaqueContent(KCB& kcb, uint8_t key)
 {
-    psa_key_handle_t *key_p {};
+    gcm_key_handle_t *key_p {};
     const char *keyName = "UNKNOWN KEY";
     switch (lastHeader.origin)
     {
