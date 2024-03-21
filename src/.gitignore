@@ -2,5 +2,5 @@
 bootloader
 modules
 tools
-zephyr
+/zephyr
 build*

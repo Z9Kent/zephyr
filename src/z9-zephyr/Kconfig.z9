@@ -8,8 +8,8 @@ config Z9_CONTROLLER
     default n
 
 #rsource "aes-gcm/Kconfig"
-rsource "ble/Kconfig"
-rsource "nfc/Kconfig"
+#rsource "ble/Kconfig"
+#rsource "nfc/Kconfig"
 
 endmenu
 

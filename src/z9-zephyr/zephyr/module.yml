@@ -1,0 +1,12 @@
+name: z9-src
+build:
+  cmake: .
+  kconfig: Kconfig.z9
+#sysbuild-cmake: sysbuild
+#sysbuild-kconfig: sysbuild/Kconfig.sysbuild
+  settings:
+    board_root: .
+    dts_root: .
+    soc_root: .
+#module_ext_root: .
+
