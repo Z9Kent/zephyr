@@ -1,5 +1,5 @@
-identifier: wl_radio_nrf_nrf_cpuapp
-name: WL-RADIO-NRF-NRF-application-MCU
+identifier: wl_athena_radio_cpuapp
+name: WL-ATHENA-RADIO-application-MCU
 type: mcu
 arch: arm
 toolchain:

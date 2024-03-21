@@ -6,7 +6,7 @@
 
 /dts-v1/;
 #include <nordic/nrf5340_cpunet_qkaa.dtsi>
-#include "wl_radio_nrf_nrf_cpunet-pinctrl.dtsi"
+#include "wl_athena_radio_cpunet-pinctrl.dtsi"
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 
 / {

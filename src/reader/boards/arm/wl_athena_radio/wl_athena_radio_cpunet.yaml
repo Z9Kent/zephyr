@@ -1,5 +1,5 @@
-identifier: wl_radio_nrf_nrf_cpunet
-name: WL-RADIO-NRF-NRF-network-MCU
+identifier: wl_athena_radio_cpunet
+name: WL-ATHENA-RADIO-network-MCU
 type: mcu
 arch: arm
 toolchain:

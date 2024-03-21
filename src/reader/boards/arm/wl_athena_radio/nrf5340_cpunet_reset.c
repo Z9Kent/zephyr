@@ -11,7 +11,7 @@
 #include <soc.h>
 #include <hal/nrf_reset.h>
 
-LOG_MODULE_REGISTER(wl_radio_nrf_nrf_cpuapp, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(wl_athena_radio_cpuapp, CONFIG_LOG_DEFAULT_LEVEL);
 
 #if defined(CONFIG_BT_CTLR_DEBUG_PINS_CPUAPP)
 #include <../subsys/bluetooth/controller/ll_sw/nordic/hal/nrf5/debug.h>

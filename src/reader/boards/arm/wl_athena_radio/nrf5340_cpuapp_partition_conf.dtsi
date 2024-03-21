@@ -5,7 +5,7 @@
  */
 
 /*
- * Default Flash planning for wl_radio_nrf_nrf CPUAPP (Application MCU).
+ * Default Flash planning for wl_athena_radio CPUAPP (Application MCU).
  *
  * Zephyr build for nRF5340 with ARM TrustZone-M support,
  * implies building Secure and Non-Secure Zephyr images.
