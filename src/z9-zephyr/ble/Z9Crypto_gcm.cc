@@ -20,9 +20,13 @@ static uint8_t z9_c_crypt_temp[512];
 uint8_t *Z9Crypto_random()
 {
     static uint8_t random[16];
+#if 0
     auto status = sys_csrand_get(random, sizeof(random));
     if (!status)
         return random;
+#else
+    sys_rand_get(random, sizeof(random));
+#endif
     return {};
 }
 

@@ -19,9 +19,6 @@
 
 void Z9LockIO_performECDH(void *arg, ECDH_rsp_fn fn, cosnt uint8_t *nocPublic, uint16_t keyLength)
 {
-    
-#if 0
-
     // since we only save our public key, see if NOC sent same pulic key. If so we respond with
     // our saved key
     if (memcmp(&buf[1], noc_public_key, sizeof(noc_public_key)) == 0 && lock_public_key[0])
@@ -31,18 +28,21 @@ void Z9LockIO_performECDH(void *arg, ECDH_rsp_fn fn, cosnt uint8_t *nocPublic, u
     }
     else
     {
+#ifndef CONFIG_Z9_READER
+        send_ecdh(arg, fn, nocPublic, keyLength);
+#else
         auto [cnt, p] = Z9Lock_ECDH(buf);
         if (cnt)
         {
             printk("%s: calculated secret\n", __func__);
-            z9lock_gen_keyExchange_rsp(cnt, p);
+            z9lock_gen_keyExchange_rsp(arg, cnt, p);
             printk("%s: send response\n", __func__);
         }
     }
     break;
 #endif
 }
-#if 0
+#if CONFIG_Z9_READER
 static void derive_key_from_shared_secret_and_public_keys(
     const unsigned char *shared_secret, std::size_t shared_secret_len,
     const unsigned char *our_public_key, std::size_t our_public_key_len,

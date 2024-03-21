@@ -12,11 +12,19 @@ config ST25R3916_LIB
     bool "Enable 3911 Library"
     default n
 
-rsource "st25r3916/Kconfig"
+#rsource "st25r3916/Kconfig"
 
 
 endmenu
 
+menu "Z9 Crypto"
+
+config Z9_GCM_C
+    bool "Enable Software GCM"
+    default n
+#rsource "aes-gcm/Kconfig"
+
+endmenu
 menu "Zephyr Kernel"
 source "Kconfig.zephyr"
 endmenu

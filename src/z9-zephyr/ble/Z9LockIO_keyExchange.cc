@@ -4,6 +4,7 @@
 #include "Z9LockIOProtocol_Current.h"
 
 #include "Z9LockIO_protocol.h"
+#include "Z9LockIO_ECDH.h"
 
 #include <zephyr/kernel.h>
 
@@ -36,9 +37,8 @@ void Z9LockIO_keyExchange(KCB& kcb, uint8_t key)
     // forward to reader (if needed) for actual key deriviation
     //Z9LockIO_performECDH(Z9LockIO_keyExchange_rsp, p, key_len);
 }
-
 #if 0
-static void Z9LockIO_keyExchange_rsp(void *arg, const uint8_t *key, uint16_t keyLength);
+static void Z9LockIO_keyExchange_rsp(void *arg, const uint8_t *key, uint16_t keyLength)
 {
     static uint8_t buf[100];
     printk("%s: %u bytes\n", __func__, cnt);

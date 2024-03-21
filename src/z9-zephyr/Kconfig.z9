@@ -1,7 +1,15 @@
 menu "Z9-Lock"
+config Z9_READER
+    bool "Enable Reader"
+    default n
 
-rsource "aes-gcm/Kconfig"
+config Z9_CONTROLLER
+    bool "Enable Controller"
+    default n
+
+#rsource "aes-gcm/Kconfig"
 rsource "ble/Kconfig"
+rsource "nfc/Kconfig"
 
 endmenu
 
