@@ -27,13 +27,20 @@ uint8_t packetCount;
 LockBundleHeader lastHeader;
     
 // constants for dealing with serialized packets
-static constexpr auto bundleSerializedLen          = 36;        // plus packet
+static constexpr auto bundleSerializedLen          = 36;        // excludes packet
 static constexpr auto opaqueSerializedLen          = 2 + 12 + 16;
 static constexpr auto packetSerializedLen          = 5;
 static constexpr auto packetSerializedLenOffset    = 2;
 static constexpr auto bundleSerializedDestOffset   = 2;
 static constexpr auto bundleSerializedOpaqueOffset = 35;
     
+// XXX examine "alignment" to see if anything falls out...
+static constexpr auto z9ioHeaderSize  = 10;      // Z9IO header requirements (none required for Eros)
+static constexpr auto clearHeaderSize =  2 * packetSerializedLen + bundleSerializedLen;
+static constexpr auto opaqueHeaderSize = 3 * packetSerializedLen + 
+                                            2 * bundleSerializedLen +
+                                            1 * opaqueSerializedLen;
+
 
 void Z9LockIO_bundleHeader(KCB& kcb, uint8_t key)
 {
@@ -53,25 +60,29 @@ void Z9LockIO_bundleHeader(KCB& kcb, uint8_t key)
 // second LockBundleHeader. Fixup counts, etc, in `Z9LockIO_sendBundle()`
 KCB *Z9LockIO_createBundleHeader(uint8_t discriminator, bool opaque, bool toIntermediate, uint8_t count)
 {
-    // XXX examine "alignment" to see if anything falls out...
-    static constexpr auto z9ioHeaderSize  = 10;      // Z9IO header requirements (none required for Eros)
-    static constexpr auto clearHeaderSize =  2 * packetSerializedLen + bundleSerializedLen;
-    static constexpr auto opaqueHeaderSize = 3 * packetSerializedLen + 
-                                             2 * bundleSerializedLen +
-                                             1 * opaqueSerializedLen;
+    // preferences stored in KCB
+    static constexpr auto preferencesSize = 4;
 
+    // NB: Headers for opaque case don't fit in MBUF header. 
+    //     prepend opaque headers in `_sendBundle`
+#if 0
     // validate headers all fit in KCB base page
-    static_assert((opaqueHeaderSize + z9ioHeaderSize + packetSerializedLen) 
-                    < (sizeof(KernelBuffer) + sizeof(kcb)),
+    static_assert((opaqueHeaderSize + z9ioHeaderSize) 
+                    < (sizeof(KernelBuffer) - sizeof(kcb)),
                 "Header won't fit in KCB base page");
     
     // select appropriate headroom in KCB
-    auto headRoom = z9ioHeaderSize + packetSerializedLen + 
-                        (opaque ? opaqueHeaderSize : clearHeaderSize);
+    auto headRoom = z9ioHeaderSize + (opaque ? opaqueHeaderSize : clearHeaderSize);
 
-    // preferences stored in KCB
-    static constexpr auto preferencesSize = 4;
-    auto& kcb = *KCB_NEW(headRoom - preferencesSize); 
+#else
+    // validate headers all fit in KCB base page
+    static_assert((clearHeaderSize + z9ioHeaderSize) 
+                    < (sizeof(KernelBuffer) - sizeof(kcb)),
+                "Header won't fit in KCB base page");
+    
+    auto headRoom = z9ioHeaderSize + clearHeaderSize;
+#endif
+    auto& kcb = *KCB_NEW(headRoom + preferencesSize); 
 
     // record preferences
     kcb.write(discriminator).write(opaque);
@@ -158,11 +169,42 @@ void Z9LockIO_sendBundle(KCB& kcb)
                 break;
         }
 
-        auto len = kcb.size();              // encrypt rest of buffer
+        auto len = kcb.top().size();              // encrypt rest of buffer
         printk("%s: Encrypting %u bytes using key: %s\n", __func__, len, keyName);
-
+        
+        // NB: opaque headers wont fit in MBUF.
+        // allocated contigous buffer & process there
+    #if 0
         // routine encrypts and prepends IV + TAG 
         Z9Crypto_gcm_encrypt_KCB(*key_p, kcb); 
+    #else
+        // copy data to be encrypted to appropriate location in static buffer
+        // temp gcm implementation only takes whole buffers
+        static uint8_t output_buffer[512];
+        auto iv  = &output_buffer[0];
+        auto tag = &iv[12];
+        auto s   = &tag[16];
+
+        // generate a tag 
+        std::memcpy(iv, Z9Crypto_random(), 12);
+        
+        // copy MBUF to static buffer
+        kcb_headroom_t available;
+        while (auto p = kcb.currentBlock(available))
+        {
+            std::memcpy(s, p, available);
+            s += available;
+        }
+
+        std::size_t encrypted = len;
+        int result = Z9Crypto_gcm_encrypt(*key_p, iv, {}, 0, output_buffer, encrypted, tag, 16);
+
+        kcb.flush(z9ioHeaderSize + clearHeaderSize);
+        s = output_buffer;
+        while (encrypted--)
+            kcb.write(*s++);
+
+#endif
         kcb.push(len).push(len >> 8);       // also need "length"
         prependPacketHeader(LockOpaqueContent::DISCRIMINATOR, len + opaqueSerializedLen);
 

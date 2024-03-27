@@ -15,22 +15,26 @@
 #include "ProtocolMetadata.h"
 #include "Z9Serialize.h"
 #include "variableArray.h"
+#include "Z9LockIO_ECDH.h"
+#include "Z9IO_Logic.h"
 
+static ECDH_rsp_fn rsp_fn;
 
-void Z9LockIO_performECDH(void *arg, ECDH_rsp_fn fn, cosnt uint8_t *nocPublic, uint16_t keyLength)
+void Z9LockIO_performECDH(ECDH_rsp_fn fn, const uint8_t *nocPublic, uint16_t keyLength)
 {
     // since we only save our public key, see if NOC sent same pulic key. If so we respond with
     // our saved key
-    if (memcmp(&buf[1], noc_public_key, sizeof(noc_public_key)) == 0 && lock_public_key[0])
+    if (memcmp(nocPublic, noc_public_key, sizeof(noc_public_key)) == 0 && lock_public_key[0])
     {
         printk("%s: NOC_didn't change: replying with saved public key", __func__);
-        z9lock_gen_keyExchange_rsp(sizeof(lock_public_key), lock_public_key);
+        fn(lock_public_key, sizeof(lock_public_key));
     }
     else
     {
-#ifndef CONFIG_Z9_READER
-        send_ecdh(arg, fn, nocPublic, keyLength);
+#ifdef CONFIG_Z9_CONTROLLER
+        send_req_ecdh(rsp_fn, nocPublic, keyLength);
 #else
+#if 0
         auto [cnt, p] = Z9Lock_ECDH(buf);
         if (cnt)
         {
@@ -38,9 +42,9 @@ void Z9LockIO_performECDH(void *arg, ECDH_rsp_fn fn, cosnt uint8_t *nocPublic, u
             z9lock_gen_keyExchange_rsp(arg, cnt, p);
             printk("%s: send response\n", __func__);
         }
-    }
-    break;
 #endif
+#endif
+    }
 }
 #if CONFIG_Z9_READER
 static void derive_key_from_shared_secret_and_public_keys(
@@ -49,8 +53,24 @@ static void derive_key_from_shared_secret_and_public_keys(
     const unsigned char *other_public_key, std::size_t other_public_key_len,
     unsigned char *output, std::size_t output_len)
 {
-    mbedtls_sha256_context sha256_ctx;
+
     unsigned char hash[32]; // SHA-256 outputs 32 bytes
+#ifdef CONFIG_MBEDTLS_PSA_CRYPTO_C
+    psa_status_t status;
+    psa_hash_operation_t hash_operation = {0};
+    uint32_t olen {};
+
+    psa_crypto_init();
+    psa_hash_setup(&hash_operation, PSA_ALG_SHA_256);
+    psa_hash_update(&hash_operation, shared_secret, shared_secret_len);
+    psa_hash_update(&hash_operation, our_public_key, our_public_key_len);
+    psa_hash_update(&hash_operation, other_public_key, other_public_key_len);
+    status = psa_hash_finish(&hash_operation, hash, sizeof(hash), &olen);
+    if (status)
+        printk("%s: error = %d\n", __func__, status);
+
+#else
+  mbedtls_sha256_context sha256_ctx;
 
     // Initialize SHA-256 context
     mbedtls_sha256_init(&sha256_ctx);
@@ -70,12 +90,12 @@ static void derive_key_from_shared_secret_and_public_keys(
 
     // Clean up
     mbedtls_sha256_free(&sha256_ctx);
+#endif
 
     // Copy the required number of bytes to the output
     memcpy(output, hash, output_len);
 }
-#endif
-#if 0
+
 std::tuple<uint8_t, uint8_t const *>Z9Lock_ECDH(uint8_t const *msg)
 {
     // remote public key should be 64 bytes
@@ -88,11 +108,11 @@ std::tuple<uint8_t, uint8_t const *>Z9Lock_ECDH(uint8_t const *msg)
         printk("%s: not in pairing mode\n", __func__);
         return {};
     }
-
+#if 0
     // check if stored remote public key matches -- if so done
     if (std::memcmp(noc_public_key, msg, sizeof(noc_public_key)) == 0)
         return { sizeof(lock_public_key), lock_public_key };
-
+#endif
     // need new public key for lock
     // 1) generate key pair
     gcm_key_handle_t key_handle;
@@ -130,7 +150,7 @@ std::tuple<uint8_t, uint8_t const *>Z9Lock_ECDH(uint8_t const *msg)
                                    noc_public_key, sizeof(noc_public_key),
                                    lock_ecdh_secret, sizeof(lock_ecdh_secret),
                                    &ecdh_len);
-
+#if 0
     if (status)
         printk("%s: psa_raw_key_agreement: error=%d\n", __func__, status);
     {
@@ -157,14 +177,14 @@ std::tuple<uint8_t, uint8_t const *>Z9Lock_ECDH(uint8_t const *msg)
             printk("%02x ", *p++);
         printk("\n");
     }
-    
+    #endif
     derive_key_from_shared_secret_and_public_keys(
         lock_ecdh_secret, sizeof(lock_ecdh_secret),
         lock_public_key, sizeof(lock_public_key),
         noc_public_key, sizeof(noc_public_key),
         noc_derived_key, sizeof(noc_derived_key)
     );
-
+#if 0
     {
         uint8_t *p = noc_derived_key;
         auto n = sizeof(noc_derived_key);
@@ -173,13 +193,13 @@ std::tuple<uint8_t, uint8_t const *>Z9Lock_ECDH(uint8_t const *msg)
             printk("%02x", *p++);
         printk("\n");
     }
-    
+#endif
     // 5) destroy lock public key-pair
     psa_destroy_key(key_handle);
-
+#ifdef CONFIG_Z9_CONTROLLER
     // 6) write keys to NVM storage & update Z9Lock_status()
     nvm_settings_save_keys();
-
+#endif
     // 8) return public key
     return { sizeof(lock_public_key), lock_public_key };
 }

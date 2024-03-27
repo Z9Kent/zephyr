@@ -285,6 +285,7 @@ bool Z9IO_Link::recv_return(KCB& kcb)
 
     if (c == Z9IO_FLAG)
     {
+        LOG_INF("%s: receive timeout", __func__);
         // process timeout...
         // reset link
         return false;
@@ -294,7 +295,10 @@ bool Z9IO_Link::recv_return(KCB& kcb)
 
     // check length: minimum addr/seq/cmd
     if (size < 3)
+    {
+        LOG_INF("%s: short receive: %d bytes", __func__, size);
         return false;       // reset link
+    }
 
     // save to validate
     auto rx_seq_number = kcb.pop();

@@ -15,7 +15,7 @@
 #define NVS_PARTITION_OFFSET	FIXED_PARTITION_OFFSET(NVS_PARTITION)
 
 
-#ifdef CONFIG_Z9_CONTROLLER
+//#ifdef CONFIG_Z9_CONTROLLER
 // flash memory keys & backing store
 static struct nvs_fs fs;
 
@@ -25,7 +25,7 @@ uint8_t noc_derived_key[16];
 
 // key handles for PSA
 gcm_key_id_t noc_key_handle;
-
+#ifdef CONFIG_Z9_CONTROLLER
 void nvm_settings_reset()
 {
     nvs_clear(&fs);
@@ -110,12 +110,14 @@ void nvm_settings_save_keys()
 {
 
     // write keys to flash
+    printk("%s: saving keys to flash\n", __func__);
 	nvs_write(&fs, KEY_lock_public, lock_public_key, sizeof(lock_public_key));
 	nvs_write(&fs, KEY_noc_public, noc_public_key, sizeof(noc_public_key));
 	nvs_write(&fs, KEY_noc_derived_key, noc_derived_key, sizeof(noc_derived_key));
-    
+#ifdef CONFIG_Z9_CONTROLLER 
     // notify lock in paired mode
     z9lock_status.set_mode(LockStatusMode::NORMAL);
+#endif
 }
 
 #endif

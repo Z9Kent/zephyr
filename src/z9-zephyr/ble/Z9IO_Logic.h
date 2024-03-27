@@ -11,6 +11,7 @@
 #include <cstdint>
 
 #include "Z9Lock_status.h"
+#include "Z9LockIO_ECDH.h"
 
 struct Z9IO_Logic
 {
@@ -37,6 +38,7 @@ private:
 void send_hostInfo(uint64_t sn);
 void send_hostStatus(Z9Lock_status const&);
 void send_passThru(KCB& );
+void send_req_ecdh(ECDH_rsp_fn, const uint8_t *key, uint16_t keyLength);
 
 // declare passthru destinations
 void z9lockio_recv(KCB&);

@@ -39,6 +39,8 @@ void Z9LockIO_accessReq(KCB& kcb, uint8_t encrypted)
     z9lockio_gen_accessReq_rsp(requestID, result);
 }
 
+   //KCB *Z9LockIO_createBundleHeader(uint8_t discriminator, 
+   //                             bool opaque = true, bool toIntermediate = false, uint8_t count = 1); 
 
 static void z9lockio_gen_accessReq_rsp(uint16_t requestID, LockEvtCode result)
 {
@@ -52,7 +54,6 @@ static void z9lockio_gen_accessReq_rsp(uint16_t requestID, LockEvtCode result)
     // defaults work: encrypted back to sender
     static constexpr auto discriminator = LockMobileBleChallengeNonce::DISCRIMINATOR;
     auto& kcb = *Z9LockIO_createBundleHeader(discriminator);
-    
     kcb.write(requestID >> 8);
     kcb.write(requestID);
     

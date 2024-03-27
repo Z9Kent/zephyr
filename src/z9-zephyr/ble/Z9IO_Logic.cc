@@ -38,7 +38,8 @@
 #endif
 
 
-
+#include "Z9LockIO_ECDH.h"
+#include "Settings.h"
 
 LOG_MODULE_DECLARE(z9io, CONFIG_Z9IO_LOG_LEVEL);
 
@@ -134,14 +135,20 @@ KCB& gen_config(Z9IO_Logic&, uint32_t input, uint32_t output, uint32_t analog)
     return gen_message(Config_DISCRIMINATOR, sizeof(data), data);
 }
 
-KCB& gen_appKeyExchange  (Z9IO_Logic&, uint8_t type = 0, uint8_t length = 0, uint8_t *key = NULL)
+KCB& gen_appKeyExchange  (uint8_t type = 0, uint8_t length = 0, const uint8_t *key = NULL)
 {
-    uint8_t data[35], *p = data;
-    std::memset(data, 0, sizeof(data));
+    uint8_t data[65 + 2] = {}, *p = data;
     *p++ = type;
-    *p++ = 33;
+    *p++ = length;
     std::memcpy(p, key, length); 
-    return gen_message(ApplicationEncryptionKeyExchange_DISCRIMINATOR, sizeof(data), data);
+    return gen_message(ApplicationEncryptionKeyExchange_DISCRIMINATOR, length + 2, data);
+}
+
+static ECDH_rsp_fn ecdh_fn; 
+void send_req_ecdh(ECDH_rsp_fn fn, const uint8_t *key, uint16_t keyLen)
+{
+    ecdh_fn = fn;
+    Z9IO_Logic::get(0).send(gen_appKeyExchange(ApplicationEncryptionKeyExchangeType_KEY_AGREEMENT_REQ, keyLen, key));
 }
 
 void send_hostInfo(uint64_t sn)
@@ -248,6 +255,7 @@ bool Z9IO_Logic::process_recv(KCB& kcb)
     auto& m  = modelInfo;
     switch (cmd)
     {
+#ifdef CONFIG_Z9_CONTROLLER
         case BoardInfo_DISCRIMINATOR:
         {
             // process BoardInfo (just check model #)
@@ -282,11 +290,12 @@ bool Z9IO_Logic::process_recv(KCB& kcb)
                 output |= 1 << i;
 
             //send(gen_config(*this, input, output, analog));
-            send(gen_appKeyExchange (*this, ApplicationEncryptionKeyExchangeType_PUBLIC_KEY_REQ));
+            // request lock public key from reader
+            //send(gen_appKeyExchange (ApplicationEncryptionKeyExchangeType_PUBLIC_KEY_REQ));
             z9lock_status.publish();
             break;
         }
-
+#endif
         case RawRead_DISCRIMINATOR:
         {
             // process RawRead
@@ -350,21 +359,40 @@ bool Z9IO_Logic::process_recv(KCB& kcb)
                 *p++ = kcb.read();
             
             // dump the packet
-            LOG_INF("%s: App KeyX, len = %d", __func__, len);
+            LOG_INF("%s: App KeyX, type=%u, len=%d", __func__, data[0], len);
             LOG_HEXDUMP_INF(data, len, "AppKeyX data=");
 
             // validate type & length
-            if (data[0] == ApplicationEncryptionKeyExchangeType_PUBLIC_KEY_RESP && data[1] == 33)
+            switch(data[0])
             {
-                std::memcpy(raw_lock_public_key, &data[2], data[1]);
-            }
-            else if (data[0] == ApplicationEncryptionKeyExchangeType_KEY_AGREEMENT_RESP && data[1] == 16)
-            {
-                std::memcpy(raw_application_key, &data[2], data[1]);
-            }
-            else
-            {
-                LOG_ERR("%s: App KeyX: invalid response: %02x %02x", __func__, data[0], data[1]);
+
+#ifdef CONFIG_Z9_READER
+            // can't save secret key. Just generate local key when have remotes key
+            //case ApplicationEncryptionKeyExchangeType_PUBLIC_KEY_REQ:
+                //if (lock_public_key[0])
+                //    send(gen_appKeyExchange(ApplicationEncryptionKeyExchangeType_PUBLIC_KEY_RESP, sizeof(lock_public_key), lock_public_key));
+                //break;
+            case ApplicationEncryptionKeyExchangeType_KEY_AGREEMENT_REQ:
+                Z9Lock_ECDH(&data[1]);
+                send(gen_appKeyExchange(ApplicationEncryptionKeyExchangeType_PUBLIC_KEY_RESP, sizeof(lock_public_key), lock_public_key));
+                send(gen_appKeyExchange(ApplicationEncryptionKeyExchangeType_KEY_AGREEMENT_RESP, sizeof(noc_derived_key), noc_derived_key));
+                break;                
+#endif
+#ifdef CONFIG_Z9_CONTROLLER
+            case ApplicationEncryptionKeyExchangeType_PUBLIC_KEY_RESP:
+                std::memcpy(lock_public_key, &data[2], data[1]);
+                break;
+            case ApplicationEncryptionKeyExchangeType_KEY_AGREEMENT_RESP:
+                std::memcpy(noc_derived_key, &data[2], data[1]);
+                nvm_settings_save_keys();       // also sets normal
+                if (ecdh_fn)
+                    ecdh_fn(noc_derived_key, data[1]);
+                ecdh_fn = {};
+                break;
+#endif
+            default:
+                LOG_ERR("%s: App KeyX: invalid response: %02x %02x %02x", __func__, data[0], data[1], data[2]);
+                break;
             }
             break;
         }

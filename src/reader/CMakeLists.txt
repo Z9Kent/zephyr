@@ -37,6 +37,8 @@ target_sources(app PRIVATE ../z9-zephyr/ble/KernelCharacterBuffer.c)
 #target_sources(app PRIVATE ../z9-zephyr/ble/Z9LockIO_accessReq.cc)
 #target_sources(app PRIVATE ../z9-zephyr/ble/Z9LockIO_dbChange.cc)
 #target_sources(app PRIVATE ../z9-zephyr/ble/Z9LockIO_credAuthorization.cc)
+target_sources(app PRIVATE ../z9-zephyr/ble/Z9LockIO_ECDH.cc)
+
 
 #target_sources(app PRIVATE ../z9-zephyr/ble/DbStore.cc)
 target_sources(app PRIVATE ../z9-zephyr/ble/Z9IO_Device.c)
