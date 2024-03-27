@@ -1,0 +1,190 @@
+/**
+  ******************************************************************************
+  * @file    nucleo_l476rg_bus.c
+  * @author  MMY Application Team
+  * @brief   header file for the BSP BUS IO driver
+  ******************************************************************************
+  ** This notice applies to any and all portions of this file
+  * that are not between comment pairs USER CODE BEGIN and
+  * USER CODE END. Other portions of this file, whether
+  * inserted by the user or by software development tools
+  * are owned by their respective copyright owners.
+  *
+  * COPYRIGHT(c) 2019 STMicroelectronics
+  *
+  * Redistribution and use in source and binary forms, with or without modification,
+  * are permitted provided that the following conditions are met:
+  *   1. Redistributions of source code must retain the above copyright notice,
+  *      this list of conditions and the following disclaimer.
+  *   2. Redistributions in binary form must reproduce the above copyright notice,
+  *      this list of conditions and the following disclaimer in the documentation
+  *      and/or other materials provided with the distribution.
+  *   3. Neither the name of STMicroelectronics nor the names of its contributors
+  *      may be used to endorse or promote products derived from this software
+  *      without specific prior written permission.
+  *
+  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  *
+  ******************************************************************************
+  */
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef NUCLEO_L476RG_BUS_H
+#define NUCLEO_L476RG_BUS_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Includes ------------------------------------------------------------------*/
+#include "nucleo_l476rg_conf.h"
+#include "nucleo_l476rg_errno.h"
+
+#if 0 /* Code not compiled, reserved for Doxygen */
+/** @addtogroup BSP
+  * @{
+  */
+
+/** @addtogroup NUCLEO_L476RG
+  * @{
+  */
+
+/** @defgroup NUCLEO_L476RG_BUS NUCLEO_L476RG BUS
+  * @{
+  */
+#endif /* MISRAC2012 4.4 : Avoid a section of code seems to be commented out */
+
+/* Exported types ------------------------------------------------------------*/
+#if 0 /* Code not compiled, reserved for Doxygen */
+/** @defgroup NUCLEO_L476RG_BUS_Private_Types NUCLEO_L476RG BUS Private types
+  * @{
+  */
+#endif /* MISRAC2012 4.4 : Avoid a section of code seems to be commented out */
+
+#if (USE_HAL_SPI_REGISTER_CALLBACKS == 1)
+typedef struct
+{
+  pSPI_CallbackTypeDef  pMspSpiInitCb;
+  pSPI_CallbackTypeDef  pMspSpiDeInitCb;
+}BSP_SPI_Cb_t;
+#endif /* (USE_HAL_SPI_REGISTER_CALLBACKS == 1) */
+
+/* Exported constants --------------------------------------------------------*/
+#if 0 /* Code not compiled, reserved for Doxygen */
+/** @defgroup NUCLEO_L476RG_BUS_Exported_Constants NUCLEO_L476RG BUS Exported Constants
+  * @{
+  */
+#endif /* MISRAC2012 4.4 : Avoid a section of code seems to be commented out */
+
+#define BUS_SPI1                        SPI1
+#define BUS_SPI1_CLK_ENABLE()           __HAL_RCC_SPI1_CLK_ENABLE()
+#define BUS_SPI1_CLK_DISABLE()          __HAL_RCC_SPI1_CLK_DISABLE()
+#define BUS_SPI1_NSS_GPIO_PIN           GPIO_PIN_6
+#define BUS_SPI1_IRQ_GPIO_PIN           GPIO_PIN_0
+#define BUS_SPI1_SCK_GPIO_PIN           GPIO_PIN_5
+#define BUS_SPI1_MISO_GPIO_PIN          GPIO_PIN_6
+#define BUS_SPI1_MOSI_GPIO_PIN          GPIO_PIN_7
+#define BUS_SPI1_NSS_GPIO_PORT          GPIOB
+#define BUS_SPI1_IRQ_GPIO_PORT          GPIOA
+#define BUS_SPI1_SCK_GPIO_PORT          GPIOA
+#define BUS_SPI1_MISO_GPIO_PORT         GPIOA
+#define BUS_SPI1_MOSI_GPIO_PORT         GPIOA
+#define BUS_SPI1_NSS_MODE               GPIO_MODE_OUTPUT_PP
+#define BUS_SPI1_IRQ_MODE               GPIO_MODE_IT_RISING
+#define BUS_SPI1_SCK_MODE               GPIO_MODE_AF_PP
+#define BUS_SPI1_MISO_MODE              GPIO_MODE_AF_PP
+#define BUS_SPI1_MOSI_MODE              GPIO_MODE_AF_PP
+#define BUS_SPI1_NSS_GPIO_AF            GPIO_AF5_SPI1
+#define BUS_SPI1_SCK_GPIO_AF            GPIO_AF5_SPI1
+#define BUS_SPI1_MISO_GPIO_AF           GPIO_AF5_SPI1
+#define BUS_SPI1_MOSI_GPIO_AF           GPIO_AF5_SPI1
+#define BUS_SPI1_NSS_GPIO_CLK_ENABLE()  __HAL_RCC_GPIOB_CLK_ENABLE()
+#define BUS_SPI1_IRQ_GPIO_CLK_ENABLE()  __HAL_RCC_GPIOA_CLK_ENABLE()
+#define BUS_SPI1_SCK_GPIO_CLK_ENABLE()  __HAL_RCC_GPIOA_CLK_ENABLE()
+#define BUS_SPI1_MISO_GPIO_CLK_ENABLE() __HAL_RCC_GPIOA_CLK_ENABLE()
+#define BUS_SPI1_MOSI_GPIO_CLK_ENABLE() __HAL_RCC_GPIOA_CLK_ENABLE()
+
+#define BSP_SPI1_IRQ_PRIO               ((uint32_t) 0x0F)
+#define BSP_SPI1_IRQ_EXTI_IRQn          EXTI0_IRQn
+#define BSP_SPI1_IRQ_EXTI_LINE          EXTI_LINE_0
+
+#ifndef BUS_SPI1_BAUDRATE
+#define BUS_SPI1_BAUDRATE       5000000U /* baud rate of SPI1 = 5 Mbps*/
+#endif
+
+#ifndef BUS_SPI1_TIMEOUT
+#define BUS_SPI1_TIMEOUT        2000U /* baud rate of SPI1 = 5 Mbps*/
+#endif
+#if 0 /* Code not compiled, reserved for Doxygen */
+/**
+  * @}
+  */
+#endif /* MISRAC2012 4.4 : Avoid a section of code seems to be commented out */
+
+/* Exported macro ------------------------------------------------------------*/
+/* Exported variables --------------------------------------------------------*/
+#if 0 /* Code not compiled, reserved for Doxygen */
+/** @defgroup NUCLEO_L476RG_LOW_LEVEL_Exported_Variables LOW LEVEL Exported Constants
+  * @{
+  */
+#endif /* MISRAC2012 4.4 : Avoid a section of code seems to be commented out */
+
+extern SPI_HandleTypeDef Handle_Spi1;
+
+#if 0 /* Code not compiled, reserved for Doxygen */
+/**
+  * @}
+  */
+#endif /* MISRAC2012 4.4 : Avoid a section of code seems to be commented out */
+
+/* Exported functions ------------------------------------------------------- */
+#if 0 /* Code not compiled, reserved for Doxygen */
+/** @addtogroup NUCLEO_L476RG_BUS_Exported_Functions
+  * @{
+  */
+#endif /* MISRAC2012 4.4 : Avoid a section of code seems to be commented out */
+
+int32_t BSP_GetTick(void);
+/* BUS IO driver over SPI Peripheral */
+HAL_StatusTypeDef MX_SPI1_Init(SPI_HandleTypeDef * const p_SpiHandle, const uint32_t Baudrate_Presc);
+int32_t BSP_SPI1_Init(void);
+int32_t BSP_SPI1_DeInit(void);
+int32_t BSP_SPI1_SendRecv(const uint8_t * const pTxData, uint8_t * const pRxData, uint16_t Length);
+int32_t BSP_SPI1_Error(void);
+void BSP_SPI1_IRQ_Callback(void);
+void BSP_SPI1_IRQHandler(void);
+
+#if 0 /* Code not compiled, reserved for Doxygen */
+/**
+  * @}
+  */
+
+/**
+  * @}
+  */
+
+/**
+  * @}
+  */
+
+/**
+  * @}
+  */
+#endif /* MISRAC2012 4.4 : Avoid a section of code seems to be commented out */
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* NUCLEO_L476RG_BUS_H */
+
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
