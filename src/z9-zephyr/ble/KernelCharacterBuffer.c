@@ -258,6 +258,7 @@ z9_error_t kcb_push(kcb_t *kcb, uint8_t c)
     {
         kcb->head_org = KCB_ERR_PUSH;
         LOG_ERR("%s: Error: %s (%d)", __func__, kcb_errorStr(kcb->head_org), (int)kcb->head_org);
+        return kcb_errorStr(kcb->head_org);
     }
     else
     {
@@ -286,7 +287,10 @@ z9_error_t kcb_pop(kcb_t *kcb, uint8_t *pChar)
     if (kcb->head_org >= sizeof(kcb_t))
         *pChar = p->data[kcb->head_org++];
     else
+    {
         LOG_ERR("%s: Error: %s (%d)", __func__, kcb_errorStr(kcb->head_org), (int)kcb->head_org);
+        return kcb_errorStr(kcb->head_org);
+    }
     return NULL;
 }
 
@@ -317,7 +321,7 @@ z9_error_t kcb_read(kcb_t *kcb, uint8_t *pChar)
         // read past end is error
         kcb->head_org = KCB_ERR_RW_POS;
         LOG_ERR("%s: Error: %s (%d)", __func__, kcb_errorStr(kcb->head_org), (int)kcb->head_org);
-        return 0;
+        return kcb_errorStr(kcb->head_org);
     }
 
     // read character & update count
@@ -371,7 +375,7 @@ z9_error_t kcb_write(kcb_t *kcb, uint8_t c)
             {
                 kcb->head_org = KCB_ERR_NO_BLOCK;
                 LOG_ERR("%s: Error: %s (%d)", __func__, kcb_errorStr(kcb->head_org), (int)kcb->head_org);
-                return kcb_write(kcb, 0);
+                return kcb_errorStr(kcb->head_org);
             }
             
             kcb->rw_p->next_p = p;
@@ -521,6 +525,7 @@ z9_error_t kcb_seek(kcb_t *kcb, kcb_offset_t loc)
     {
         kcb->head_org = KCB_ERR_RW_POS;
         LOG_ERR("%s: locPassedIn=%u, loc=%u, read_end=%u, Error: %s (%d)", __func__, (unsigned int)locPassedIn, (unsigned int)loc, (unsigned int)kcb->read_end, kcb_errorStr(kcb->head_org), (int)kcb->head_org);
+        return kcb_errorStr(kcb->head_org);
     }
     kcb->read_cnt = kcb->read_end - loc;
     return NULL;

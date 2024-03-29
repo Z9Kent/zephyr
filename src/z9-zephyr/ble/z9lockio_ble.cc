@@ -125,5 +125,22 @@ void z9lock_ble_update_advertising(uint8_t pairing
     z9_ble_set_SN(&lock.lockID);
     auto [name, len] = lock.encode();
     z9_ble_set_name(name, len);
-    printk("%s; advertising lock %" PRIu64 "\n", __func__, lock.lockID);
+    const char *modeName;
+    switch (lock.mode)
+    {   
+        case LockStatusMode::CONSTRUCTION:
+            modeName = "Construction";
+            break;
+        case LockStatusMode::PAIRING:
+            modeName = "Pairing";
+            break;
+        case LockStatusMode::NORMAL:
+            modeName = "Normal";
+            break;
+        default:
+            modeName = "Unknown";
+            break;
+
+    }
+    printk("%s; advertising lock %" PRIu32 ", MODE=%s\n", __func__, uint32_t(lock.lockID), modeName);
 }

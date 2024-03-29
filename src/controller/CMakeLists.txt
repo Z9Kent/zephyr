@@ -21,7 +21,7 @@ include_directories(../z9-zephyr/ble)
 target_sources(app PRIVATE src/main.cc)
 target_sources(app PRIVATE src/button.c)
 
-#target_sources(app PRIVATE ../z9-zephyr/ble/z9_ble_driver.c)
+#target_sources(app PRIVATE ../z9-zephyr/ble/z9_ble_driver.cc)
 #target_sources(app PRIVATE ../z9-zephyr/ble/z9lockio_ble.cc)
 #target_sources(app PRIVATE ../z9-zephyr/ble/Eros_protocol.cc)
 target_sources(app PRIVATE ../z9-zephyr/ble/Z9Lock_status.cc)

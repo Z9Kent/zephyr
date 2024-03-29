@@ -19,5 +19,6 @@ extern gcm_key_id_t noc_key_handle;
 void nvm_settings_reset();
 void nvm_settings_init();
 void nvm_settings_save_keys();
+void nvm_settings_set_mode();
 
 #endif

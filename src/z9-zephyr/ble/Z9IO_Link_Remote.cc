@@ -281,7 +281,7 @@ bool Z9IO_Link::recv_return(KCB& kcb)
 
     // get information about receive operation
     auto size = kcb.size();
-    auto c    = kcb.pop();      // retrieve first character: address or TIMEOUT flag
+    auto c    = kcb.top().pop();      // retrieve first character: address or TIMEOUT flag
 
     if (c == Z9IO_FLAG)
     {
@@ -414,12 +414,16 @@ void Z9IO_Link::recv_keyexchange(KCB& kcb)
             return;
     }
 
+    LOG_HEXDUMP_INF(local_seed, 16, "LOCAL_SEED");
     LOG_HEXDUMP_INF(remote_seed, 16, "REMOTE_SEED");
     LOG_HEXDUMP_INF(link_key, 16, "LINK_KEY");
     LOG_HEXDUMP_INF(session_key, 16, "SESSION_KEY");
 
     key_xor(key_ptr, local_seed);
     key_xor(key_ptr, remote_seed);
+
+    LOG_HEXDUMP_INF(link_key, 16, "-> LINK_KEY");
+    LOG_HEXDUMP_INF(session_key, 16, "-> SESSION_KEY");
 
     if (response >= EncryptionKeyExchangeType_LINK_SESSION_SEED_REQ)
     {

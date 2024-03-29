@@ -1,10 +1,3 @@
-// 
-// Use `C` compiler for actual BLE driver.
-// Some of the UUID macros won't compile under C++.
-// No C++ objects are used by driver
-
-// At present, the BLE driver (except UUIDs) is configured via `KConfig`
-
 #include "z9_ble_driver.h"
 
 #include <errno.h>
@@ -21,10 +14,8 @@
 #include <zephyr/bluetooth/gatt.h>
 
 
-
 #define Z9LOCK_BUFFER_SIZE      Z9LOCK_MTU
 
-// TODO: use network buffers
 static uint8_t data_rx[Z9LOCK_MTU];
 
 static struct z9_ble_callbacks cb;
@@ -43,7 +34,7 @@ static void *                  cb_arg;
  * Define BLE advertising service & callbacks
  */
 
-static struct bt_conn *z9_ble_conn;
+static bt_conn *my_conn;
 static struct bt_gatt_exchange_params exchange_params;
 static void exchange_func(struct bt_conn *conn, uint8_t att_err,
 			  struct bt_gatt_exchange_params *params);
@@ -68,11 +59,11 @@ static void update_phy(struct bt_conn *conn)
 static void update_data_length(struct bt_conn *conn)
 {
 	int err;
-	struct bt_conn_le_data_len_param z9_ble_data_len = {
+	struct bt_conn_le_data_len_param my_data_len = {
 		.tx_max_len = BT_GAP_DATA_LEN_MAX,
 		.tx_max_time = BT_GAP_DATA_TIME_MAX,
 	};
-	err = bt_conn_le_data_len_update(z9_ble_conn, &z9_ble_data_len);
+	err = bt_conn_le_data_len_update(my_conn, &my_data_len);
 	if (err) {
 		printk("%s: data_len_update failed (err %d)", __func__, err);
 	}
@@ -97,18 +88,18 @@ void on_connected(struct bt_conn *conn, uint8_t err)
         return;
     }
     printk("MOBILE Connected\n");
-    z9_ble_conn = bt_conn_ref(conn);
+    my_conn = bt_conn_ref(conn);
 #if defined(CONFIG_BT_USER_PHY_UPDATE)
-    update_phy(z9_ble_conn);
+    update_phy(my_conn);
 #endif
-    update_data_length(z9_ble_conn);
-    update_mtu(z9_ble_conn);
+    update_data_length(my_conn);
+    update_mtu(my_conn);
     //dk_set_led_on(CON_STATUS_LED);
 }
 void on_disconnected(struct bt_conn *conn, uint8_t reason)
 {
     printk("MOBILE Disconnected. Reason %d\n", reason);
-    bt_conn_unref(z9_ble_conn);
+    bt_conn_unref(my_conn);
     //dk_set_led_off(CON_STATUS_LED);
 }
 
@@ -137,8 +128,7 @@ static void exchange_func(struct bt_conn *conn, uint8_t att_err,
 	}
 }
 
-static struct bt_conn_cb connection_callbacks =
-{
+struct bt_conn_cb connection_callbacks = {
     .connected              = on_connected,
     .disconnected           = on_disconnected,
 #if defined(CONFIG_BT_USER_PHY_UPDATE)
@@ -183,7 +173,6 @@ static void z9_ble_advertise()
     if (err) 
         printk("%s: Advertising failed to start (err %d)\n", __func__, err);
 }
-
 
 void z9_ble_set_SN(const uint64_t *sn)
 {
@@ -234,6 +223,7 @@ void z9_ble_init(const struct z9_ble_callbacks *callbacks, void *arg)
  */
 
 
+
 /* This function is called whenever the RX Characteristic has been written to by a Client */
 static ssize_t on_receive(struct bt_conn *conn,
 			  const struct bt_gatt_attr *attr,
@@ -242,8 +232,8 @@ static ssize_t on_receive(struct bt_conn *conn,
 			  uint16_t offset,
 			  uint8_t flags)
 {
-    uint8_t const *buffer = buf;
-#if 0
+    auto buffer = static_cast<uint8_t const *>(buf);
+#if 0 
 	printk("Received data: handle %d, conn %p, len: %u, data: 0x", attr->handle, conn, len);
     for(uint8_t i = 0; i < len; i++){
         printk("%02X", buffer[i]);
@@ -251,9 +241,11 @@ static ssize_t on_receive(struct bt_conn *conn,
     printk("\n");
     printk("Received data: offset=%d (0x%04x), flags=0x%02x\n", offset, offset, flags);
 #endif
+
     printk("%s: cb.recv_cb = %p\n", __func__, cb.recv_cb);
+    auto cbuf = static_cast<const uint8_t *>(buf);
     if (cb.recv_cb)
-        cb.recv_cb(cb_arg, conn, buf, len);
+        cb.recv_cb(cb_arg, conn, cbuf, len);
 	return len;
 }
 
@@ -335,7 +327,7 @@ struct notify_data {
 static uint8_t match_uuid(const struct bt_gatt_attr *attr, uint16_t handle,
 			  void *user_data)
 {
-	struct notify_data *data = user_data;
+	struct notify_data *data = static_cast<notify_data *>(user_data);
 
 	data->attr = attr;
 	data->handle = handle;
@@ -361,13 +353,12 @@ given that the Client Characteristic Control Descripter has been set to Notify (
 It also calls the on_sent() callback if successful*/
 void lock_service_send(struct bt_conn *conn, const uint8_t *data, uint16_t len)
 {
-#if 1
 	printk("Sending data: conn %p, len: %u, data: 0x", conn, len);
     for(uint8_t i = 0; i < len; i++){
         printk("%02X", data[i]);
     }
     printk("\n");
- #endif
+ 
     /* 
     The attribute for the TX characteristic is used with bt_gatt_is_subscribed 
     to check whether notification has been enabled by the peer or not.
@@ -379,16 +370,15 @@ void lock_service_send(struct bt_conn *conn, const uint8_t *data, uint16_t len)
     // work around C++ address of temporary issue...
     
 #if defined(USE_SHORT_SERVICE) && USE_SHORT_SERVICE
-     const struct bt_uuid_16 uuid = { .uuid = BT_UUID_TYPE_16, .val = { SHORT_CHAR } };
+     const bt_uuid_16 uuid = { .uuid = BT_UUID_TYPE_16, .val = { SHORT_CHAR } };
 #else
-    //const struct bt_uuid_128 uuid = { .uuid = BT_UUID_TYPE_128, .val = { Z9LOCK_UUID_CHARACTERISTIC } };
-    #define BT_UUID_LOCK_SERVICE_TX BT_UUID_DECLARE_128(Z9LOCK_UUID_CHARACTERISTIC)
+    const bt_uuid_128 uuid = { .uuid = BT_UUID_TYPE_128, .val = { Z9LOCK_UUID_CHARACTERISTIC } };
 #endif
     
     struct bt_gatt_notify_params params = 
     {
         //.uuid   = BT_UUID_CHAR_RX,
-        .uuid   = BT_UUID_LOCK_SERVICE_TX,
+        .uuid   = (const bt_uuid *)&uuid,
         .attr   = attr,
         .data   = data,
         .len    = len,
@@ -399,17 +389,20 @@ void lock_service_send(struct bt_conn *conn, const uint8_t *data, uint16_t len)
     if(bt_gatt_is_subscribed(conn, attr, BT_GATT_CCC_NOTIFY)) 
     {
         struct notify_data data;
+        auto Xparams = &params;
+        __ASSERT(Xparams, "invalid parameters\n");
+        __ASSERT(Xparams->attr || Xparams->uuid, "invalid parameters\n");
         
-        data.attr   = params.attr;
+        data.attr = Xparams->attr;
         data.handle = bt_gatt_attr_get_handle(data.attr);
 
         /* Lookup UUID if it was given */
-        if (params.uuid)
+        if (Xparams->uuid)
         {
-            if (!gatt_find_by_uuid(&data, params.uuid)) {
+            if (!gatt_find_by_uuid(&data, Xparams->uuid)) {
                 printk("%s: Error: can't find uuid\n", __func__);
             }
-            params.attr = data.attr;
+            Xparams->attr = data.attr;
         }
         else
         {
@@ -419,8 +412,7 @@ void lock_service_send(struct bt_conn *conn, const uint8_t *data, uint16_t len)
         } 
         
         // Send the notification
-        int err = bt_gatt_notify_cb(conn, &params);
-        if (err)
+        if(auto err = bt_gatt_notify_cb(conn, &params))
         {
             printk("Error, unable to send notification: %d\n", err);
         }

@@ -221,7 +221,7 @@ void Z9IO_Link::xmit_fsm_loop()
 
 
 // entrypoints returning from device driver
-#define Z9IO_RX_TIMEOUT 5000
+#define Z9IO_RX_TIMEOUT 1000
 
 void Z9IO_Link::xmit_return(KCB& kcb)
 {
@@ -244,13 +244,18 @@ bool Z9IO_Link::recv_return(KCB& kcb)
 
     // get information about receive operation
     auto size = kcb.size();
-    auto c    = kcb.pop();      // retrieve first character: address or TIMEOUT flag
+    auto c    = kcb.top().pop();      // retrieve first character: address or TIMEOUT flag
 
     if (c == Z9IO_FLAG)
     {
         // process timeout...
         // reset link
+#define IGNORE_RX_TIMEOUT
+#ifndef IGNORE_RX_TIMEOUT
         return false;
+#else
+        return true;
+#endif
     }
 
     // check CRC: include flag/size/first character
@@ -370,12 +375,18 @@ void Z9IO_Link::recv_keyexchange(KCB& kcb)
             return;
     }
 
+    LOG_HEXDUMP_INF(local_seed, 16, "LOCAL_SEED");
     LOG_HEXDUMP_INF(remote_seed, 16, "REMOTE_SEED");
     LOG_HEXDUMP_INF(link_key, 16, "LINK_KEY");
     LOG_HEXDUMP_INF(session_key, 16, "SESSION_KEY");
 
     key_xor(key_ptr, local_seed);
     key_xor(key_ptr, remote_seed);
+
+    LOG_HEXDUMP_INF(link_key, 16, "-> LINK_KEY");
+    LOG_HEXDUMP_INF(session_key, 16, "-> SESSION_KEY");
+
+
 
     if (response == EncryptionKeyExchangeType_LINK_SESSION_SEED_RESP)
     {

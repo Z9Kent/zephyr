@@ -94,17 +94,26 @@ void nvm_settings_init()
             printk("%02x", *p++);
         printk("\n");
 
-        Z9Crypto_gcmSetKey(noc_key_handle, noc_derived_key, sizeof(noc_derived_key));
-        z9lock_status.set_mode(LockStatusMode::NORMAL);
     }
     else
     {
 construction:
         printk("%s: shared secret is uninitialized\n", __func__);
-        z9lock_status.set_mode(LockStatusMode::CONSTRUCTION);
+        std::memset(noc_public_key, 0, sizeof(noc_public_key));
     }
+    nvm_settings_set_mode();
 }
 
+void nvm_settings_set_mode()
+{
+    if (noc_public_key[0] && noc_derived_key[0])
+    {
+        z9lock_status.set_mode(LockStatusMode::NORMAL);
+        Z9Crypto_gcmSetKey(noc_key_handle, noc_derived_key, sizeof(noc_derived_key));
+    }
+    else
+        z9lock_status.set_mode(LockStatusMode::CONSTRUCTION);
+}
 // keys are stored in globals: write to flash
 void nvm_settings_save_keys()
 {
@@ -116,7 +125,7 @@ void nvm_settings_save_keys()
 	nvs_write(&fs, KEY_noc_derived_key, noc_derived_key, sizeof(noc_derived_key));
 #ifdef CONFIG_Z9_CONTROLLER 
     // notify lock in paired mode
-    z9lock_status.set_mode(LockStatusMode::NORMAL);
+    nvm_settings_set_mode();
 #endif
 }
 

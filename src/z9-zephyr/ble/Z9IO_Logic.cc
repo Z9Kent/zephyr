@@ -373,7 +373,8 @@ bool Z9IO_Logic::process_recv(KCB& kcb)
                 //    send(gen_appKeyExchange(ApplicationEncryptionKeyExchangeType_PUBLIC_KEY_RESP, sizeof(lock_public_key), lock_public_key));
                 //break;
             case ApplicationEncryptionKeyExchangeType_KEY_AGREEMENT_REQ:
-                Z9Lock_ECDH(&data[1]);
+                if (!lock_public_key[0] || !noc_derived_key[0])
+                    Z9Lock_ECDH(&data[1]);
                 send(gen_appKeyExchange(ApplicationEncryptionKeyExchangeType_PUBLIC_KEY_RESP, sizeof(lock_public_key), lock_public_key));
                 send(gen_appKeyExchange(ApplicationEncryptionKeyExchangeType_KEY_AGREEMENT_RESP, sizeof(noc_derived_key), noc_derived_key));
                 break;                
@@ -384,10 +385,10 @@ bool Z9IO_Logic::process_recv(KCB& kcb)
                 break;
             case ApplicationEncryptionKeyExchangeType_KEY_AGREEMENT_RESP:
                 std::memcpy(noc_derived_key, &data[2], data[1]);
-                nvm_settings_save_keys();       // also sets normal
                 if (ecdh_fn)
-                    ecdh_fn(noc_derived_key, data[1]);
+                    ecdh_fn(lock_public_key, sizeof(lock_public_key));
                 ecdh_fn = {};
+                nvm_settings_save_keys();       // also sets normal
                 break;
 #endif
             default:

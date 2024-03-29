@@ -35,7 +35,7 @@ static constexpr auto bundleSerializedDestOffset   = 2;
 static constexpr auto bundleSerializedOpaqueOffset = 35;
     
 // XXX examine "alignment" to see if anything falls out...
-static constexpr auto z9ioHeaderSize  = 10;      // Z9IO header requirements (none required for Eros)
+static constexpr auto z9ioHeaderSize  = 16;      // Z9IO header requirements (none required for Eros)
 static constexpr auto clearHeaderSize =  2 * packetSerializedLen + bundleSerializedLen;
 static constexpr auto opaqueHeaderSize = 3 * packetSerializedLen + 
                                             2 * bundleSerializedLen +
@@ -117,7 +117,7 @@ void Z9LockIO_sendBundle(KCB& kcb)
         };
 
     // first retrieve preferences stored at creation
-    auto discriminator  = kcb.pop();
+    auto discriminator  = kcb.top().pop();
     auto opaque         = kcb.pop();
     auto toIntermediate = kcb.pop();
     auto count          = kcb.pop();
@@ -184,6 +184,7 @@ void Z9LockIO_sendBundle(KCB& kcb)
         auto iv  = &output_buffer[0];
         auto tag = &iv[12];
         auto s   = &tag[16];
+        static const auto dataOffset = s - output_buffer;
 
         // generate a tag 
         std::memcpy(iv, Z9Crypto_random(), 12);
@@ -197,15 +198,17 @@ void Z9LockIO_sendBundle(KCB& kcb)
         }
 
         std::size_t encrypted = len;
-        int result = Z9Crypto_gcm_encrypt(*key_p, iv, {}, 0, output_buffer, encrypted, tag, 16);
+        int result = Z9Crypto_gcm_encrypt(*key_p, iv, {}, 0, &output_buffer[dataOffset], encrypted, tag, 16);
 
         kcb.flush(z9ioHeaderSize + clearHeaderSize);
         s = output_buffer;
+        encrypted += dataOffset;
         while (encrypted--)
             kcb.write(*s++);
 
 #endif
-        kcb.push(len).push(len >> 8);       // also need "length"
+        kcb.push(len >> 8);
+        kcb.push(len);
         prependPacketHeader(LockOpaqueContent::DISCRIMINATOR, len + opaqueSerializedLen);
 
         // mark "initial" bundle header as opaque with count of 1

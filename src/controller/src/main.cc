@@ -51,7 +51,7 @@ static int init_leds()
 static void pairing_expired(struct k_work *work)
 {
         printk("%s: expired\n", __func__);
-        z9lock_status.set_mode(LockStatusMode::CONSTRUCTION);
+        nvm_settings_set_mode();
 }
 
 static void perform_reset(struct k_work *work)

@@ -41,3 +41,6 @@
 	current-speed = <9600>;
 	status = "okay";
 };
+&rng {
+	status = "okay";
+};

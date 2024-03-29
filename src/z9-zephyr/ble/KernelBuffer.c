@@ -54,6 +54,12 @@ z9_error_t KernelBuffer_alloc_impl(struct KernelBuffer **pResult, const char *fi
     return err;
 }
 
+// so debug hits right breakpoint
+static void log_zeroReference(const char *fn)
+{
+    LOG_ERR("%s: zero referenceCount", fn);
+}
+
 z9_error_t KernelBuffer_free(struct KernelBuffer *buf)
 {
     // decrement reference count & deallocate if count is zero
@@ -61,7 +67,7 @@ z9_error_t KernelBuffer_free(struct KernelBuffer *buf)
 
     // validate count non-zero
     if (!pInfo->referenceCount)
-        LOG_ERR("%s: zero referenceCount", __func__);
+        log_zeroReference(__func__);
     if (!pInfo->referenceCount)
         KernelBuffer_dumpAllocs();
 

@@ -166,5 +166,10 @@ void eros_send(KCB& kcb)
     auto first = p;
     auto len = kcb.length();
     while (len--) *p++ = kcb.read();
+    len = p - first;
+    p = first;
+    printk("%s: sending %u bytes: ", __func__, len);
+    while (len--) printk("%02x", *p++);
+    printk("\n");
     eros_passthru_send(1, first, p - first);
 }

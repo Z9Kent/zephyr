@@ -51,9 +51,12 @@ static void z9lockio_gen_accessReq_rsp(uint16_t requestID, LockEvtCode result)
             .credUnid       = unid };
     LockEventDb::instance().save(evt, xtra);
 
-    // defaults work: encrypted back to sender
-    static constexpr auto discriminator = LockMobileBleChallengeNonce::DISCRIMINATOR;
-    auto& kcb = *Z9LockIO_createBundleHeader(discriminator);
+    // send response back encrypted iff paired
+    //static constexpr auto discriminator = LockMobileBleChallengeNonce::DISCRIMINATOR;
+    static constexpr auto discriminator = LockAccessResp::DISCRIMINATOR;
+    
+    auto& lock = z9lock_status;
+    auto& kcb = *Z9LockIO_createBundleHeader(discriminator, lock.is_paired());
     kcb.write(requestID >> 8);
     kcb.write(requestID);
     

@@ -24,6 +24,7 @@ struct Z9Lock_status
 	void publish() const;				// send to "reader board"
 	
 	std::tuple<uint8_t const *, unsigned> encode() const;
+	bool is_paired() const { return mode == LockStatusMode::NORMAL; }
 };
 
 // declare "global" object
