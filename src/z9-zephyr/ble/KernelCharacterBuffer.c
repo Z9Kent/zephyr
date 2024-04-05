@@ -228,7 +228,7 @@ z9_error_t kcb_append(kcb_t *kcb, uint8_t c)
     {
         // no room -- link in a new buffer block
         struct KernelBuffer *p;
-        if (KernelBuffer_allocRaw(&p))
+        if (KernelBuffer_alloc(&p))
         {
             kcb->head_org = KCB_ERR_NO_BLOCK;
             LOG_ERR("%s: Error: %s (%d)", __func__, kcb_errorStr(kcb->head_org), (int)kcb->head_org);
@@ -371,7 +371,7 @@ z9_error_t kcb_write(kcb_t *kcb, uint8_t c)
         else
         {
             struct KernelBuffer *p;
-            if (KernelBuffer_allocRaw(&p))
+            if (KernelBuffer_alloc(&p))
             {
                 kcb->head_org = KCB_ERR_NO_BLOCK;
                 LOG_ERR("%s: Error: %s (%d)", __func__, kcb_errorStr(kcb->head_org), (int)kcb->head_org);

@@ -6,6 +6,7 @@
 
 #include "KernelBuffer.h"
 #include <zephyr/logging/log.h>
+#include <assert.h>
 
 LOG_MODULE_REGISTER(KernelBuffer, LOG_LEVEL_DBG);
 
@@ -55,9 +56,9 @@ z9_error_t KernelBuffer_alloc_impl(struct KernelBuffer **pResult, const char *fi
 }
 
 // so debug hits right breakpoint
-static void log_zeroReference(const char *fn)
+static void log_zeroReference(const char *fn, void *buf)
 {
-    LOG_ERR("%s: zero referenceCount", fn);
+    LOG_ERR("%s: %p: zero referenceCount", fn, buf);
 }
 
 z9_error_t KernelBuffer_free(struct KernelBuffer *buf)
@@ -67,7 +68,7 @@ z9_error_t KernelBuffer_free(struct KernelBuffer *buf)
 
     // validate count non-zero
     if (!pInfo->referenceCount)
-        log_zeroReference(__func__);
+        log_zeroReference(__func__, buf);
     if (!pInfo->referenceCount)
         KernelBuffer_dumpAllocs();
 
@@ -80,15 +81,22 @@ z9_error_t KernelBuffer_free(struct KernelBuffer *buf)
 
 z9_error_t KernelBuffer_freeList(struct KernelBuffer *first, struct KernelBuffer *last)
 {
+    //printk("%s: from %p -> %p: ", __func__, first, last);
     struct KernelBuffer *buf;
     do 
     {
         buf = first;
         first = first->next_p;
 
+        //printk("%p, ", buf);
         z9_error_t err = KernelBuffer_free(buf);
-        if (err) return err;
+        if (err)
+        {
+            //printk(": -> error: %s\n", err);
+            return err;
+        }
     } while (buf != last);
+    //printk(": done\n");
     return NULL;
 }
 
@@ -114,10 +122,13 @@ void KernelBuffer_dumpAllocs(void)
 {
     // for each allocated buffer, display where allocated
     struct KernelBufferInfo_t *pInfo = kernelBufferInfo;
+    struct KernelBuffer *base = (void *)kb_slab.buffer;
 
+    LOG_INF("%s: buffer base address: %p", __func__, base);
     for (unsigned n = 0; n < KernelBuffer_NUM_BLOCKS; ++n, ++pInfo)
         if (pInfo->referenceCount)
-            LOG_INF("%s: %u allocated at %s:%u", __func__, n, pInfo->file, pInfo->lineNo);
+            LOG_INF("%s: %u allocated at %s:%u", __func__, n, 
+                            pInfo->file ?: "???", pInfo->lineNo);
 }
 
 // Zephyr memory slabs are inited PRE_KERNEL_1, KERNEL_INIT_PRIORITY_OBJECTs

@@ -147,7 +147,7 @@ void Z9LockIO_sendBundle(KCB& kcb)
     prependBundleHeader(*p);
 
     // if encryption requested, now's the time
-    if (opaque)
+    if (opaque && 0)
     {
         // select key based on destination
         gcm_key_handle_t *key_p {};
@@ -207,8 +207,8 @@ void Z9LockIO_sendBundle(KCB& kcb)
             kcb.write(*s++);
 
 #endif
-        kcb.push(len >> 8);
         kcb.push(len);
+        kcb.push(len >> 8);
         prependPacketHeader(LockOpaqueContent::DISCRIMINATOR, len + opaqueSerializedLen);
 
         // mark "initial" bundle header as opaque with count of 1
@@ -228,4 +228,5 @@ void Z9LockIO_sendBundle(KCB& kcb)
     printk("\n");
 
     send_passThru(kcb);
+    KernelBuffer_dumpAllocs();
 }

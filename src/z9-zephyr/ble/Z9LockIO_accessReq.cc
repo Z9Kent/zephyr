@@ -33,8 +33,8 @@ void Z9LockIO_accessReq(KCB& kcb, uint8_t encrypted)
     LockEvtCode result = LockEvtCode_DOOR_ACCESS_GRANTED;
     if (privacy_state)
         result = LockEvtCode_DOOR_ACCESS_DENIED_DOOR_PRIVACY;
-    else if (!schedMask)
-        result = LockEvtCode_DOOR_ACCESS_DENIED_INACTIVE;
+    //else if (!schedMask)
+    //    result = LockEvtCode_DOOR_ACCESS_DENIED_INACTIVE;
 
     z9lockio_gen_accessReq_rsp(requestID, result);
 }
@@ -51,6 +51,7 @@ static void z9lockio_gen_accessReq_rsp(uint16_t requestID, LockEvtCode result)
             .credUnid       = unid };
     LockEventDb::instance().save(evt, xtra);
 
+    printk("AccessResp: ID=%04" PRIx32 ", result=%d\n", requestID, result);
     // send response back encrypted iff paired
     //static constexpr auto discriminator = LockMobileBleChallengeNonce::DISCRIMINATOR;
     static constexpr auto discriminator = LockAccessResp::DISCRIMINATOR;
@@ -64,5 +65,7 @@ static void z9lockio_gen_accessReq_rsp(uint16_t requestID, LockEvtCode result)
     kcb.write(error >> 8);
     kcb.write(error);
     kcb.write(result == LockEvtCode_DOOR_ACCESS_GRANTED);
+    if (result == LockEvtCode_DOOR_ACCESS_GRANTED)
+        led_motor();
     Z9LockIO_sendBundle(kcb);
 }

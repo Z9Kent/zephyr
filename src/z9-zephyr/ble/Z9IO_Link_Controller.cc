@@ -87,7 +87,7 @@ KCB& gen_key_exchange(uint8_t& seq_number, bool is_linked)
     uint8_t data[18] = { (uint8_t)(is_linked * 2), 16 };
     memcpy(&data[2], local_seed, sizeof(local_seed));
     
-    LOG_INF("%s: Sending key: %u", __func__, data[0]);
+    //LOG_INF("%s: Sending key: %u", __func__, data[0]);
     return gen_message(seq_number, EncryptionKeyExchange_DISCRIMINATOR, sizeof(data), data);
 }
 
@@ -254,6 +254,8 @@ bool Z9IO_Link::recv_return(KCB& kcb)
 #ifndef IGNORE_RX_TIMEOUT
         return false;
 #else
+        if (retry_count && !--retry_count)
+            state = LS_IDLE;
         return true;
 #endif
     }
@@ -269,31 +271,33 @@ bool Z9IO_Link::recv_return(KCB& kcb)
     
     // command byte used later: leave in recv buffer
     auto cmd  = kcb.top().peek();
+	//LOG_INF("%s: cmd=%u, size=%u", __func__, cmd, kcb.size());
 
     // filter allowed cmds based on link FSM state
     // if cmd not allowed, replace with NULL command (zero)
     constexpr uint8_t NULL_DISCRIMINATOR = {};
-    switch (state)
-    {
-        case LS_INIT:
-        default:
-            cmd = NULL_DISCRIMINATOR;
-            break;
+    if (cmd != Ack_DISCRIMINATOR)
+        switch (state)
+        {
+            case LS_INIT:
+            default:
+                cmd = NULL_DISCRIMINATOR;
+                break;
 
-        case LS_WAIT_BOARD_INFO:
-            if (cmd != BoardInfo_DISCRIMINATOR)
-                cmd = NULL_DISCRIMINATOR;
+            case LS_WAIT_BOARD_INFO:
+                if (cmd != BoardInfo_DISCRIMINATOR)
+                    cmd = NULL_DISCRIMINATOR;
+                
+                break;
+            case LS_KEY_XCHANGE_PEND:
+            case LS_KEY_XCHANGE_WAIT:
+                if (cmd != EncryptionKeyExchange_DISCRIMINATOR)
+                    cmd = NULL_DISCRIMINATOR;
+                break;
             
-            break;
-        case LS_KEY_XCHANGE_PEND:
-        case LS_KEY_XCHANGE_WAIT:
-            if (cmd != EncryptionKeyExchange_DISCRIMINATOR)
-                cmd = NULL_DISCRIMINATOR;
-            break;
-        
-        case LS_IDLE:
-            break;      // normal processing 
-    }
+            case LS_IDLE:
+                break;      // normal processing 
+        }
 
     // handle locally processed messages and forward others inbound
     switch (cmd)

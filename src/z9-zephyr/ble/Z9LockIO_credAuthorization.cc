@@ -55,7 +55,7 @@ void Z9LockIO_credAuthorization(KCB& kcb, uint8_t encrypted)
     Z9Crypto_gcmSetKey(mobile_key_handle, buf, sharedSecretLen);
 
     printk("%s: received CredAuthorization: lock: %llu, mobile: %llu, secret: %d bytes\n",
-            __func__, mobileID, lockID, sharedSecretLen);
+            __func__, lockID, mobileID, sharedSecretLen);
     Z9LockIO_gen_challenge(); 
 }
 

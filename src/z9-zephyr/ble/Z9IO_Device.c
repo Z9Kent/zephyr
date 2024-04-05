@@ -179,7 +179,7 @@ static void z9io_device_process_recv(const struct device *dev, struct z9io_devic
 			case RECV_STATE_WAIT_FLAG:
 				if (c != Z9IO_FLAG)
 				{
-					LOG_INF("%s: ignoring: %02x", __func__, c);
+					//LOG_INF("%s: ignoring: %02x", __func__, c);
 					break;
 				}
 				p->recv_state = RECV_STATE_WAIT_COUNT1;

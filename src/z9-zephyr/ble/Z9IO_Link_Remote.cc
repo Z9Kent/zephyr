@@ -50,7 +50,7 @@ void key_xor(uint8_t *key, const uint8_t *data)
 // must pre-increment seq_number for each message generated
 static KCB& gen_message(uint8_t& seq_number, uint8_t cmd, uint8_t count = 0, uint8_t *data = {})
 {
-    //LOG_INF("%s: cmd=%02x", __func__, cmd);
+    //LOG_INF("%s: cmd=%u", __func__, cmd);
 
     constexpr unsigned tx_headroom = 6;
     auto& kcb = *KCB_NEW(tx_headroom);
@@ -80,7 +80,7 @@ KCB& gen_hello(uint8_t& seq_number)
     return gen_message(seq_number, Hello_DISCRIMINATOR, sizeof(data), data);
 }
 
-KCB& gen_boardInfo(uint8_t& seq_number)
+KCB& gen_boardInfo(uint8_t& seq_number, bool hasSessionKey)
 {
     bool is_encrypted = key_isSet(session_key);
     uint8_t data[33] = 
@@ -92,14 +92,13 @@ KCB& gen_boardInfo(uint8_t& seq_number)
     };
     data[4] = 0;    // FW Hi
     data[5] = 0;    // FW Low
-    data[6] = is_encrypted;
+    data[6] = hasSessionKey;
     
     uint8_t sn[8] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88 };
     std::memcpy(&data[7], sn, 8);
 
     return gen_message(seq_number, BoardInfo_DISCRIMINATOR, sizeof(data), (uint8_t *)&data);
 }
-
 
 KCB& gen_key_exchange(uint8_t& seq_number, bool is_linked, bool is_remote = false)
 {
@@ -200,50 +199,59 @@ void Z9IO_Link::xmit_fsm_loop()
     {
         // start with HELLO message
         case LS_INIT:
-            state       = LS_WAIT_HELLO;
+        default: 
+            state = LS_INIT;
             seq_number += 2;        // screw up sn
             xmit_kcb = &gen_ack(seq_number);
             break;
 
-        // after hello, perform key exchange
-        case LS_KEY_XCHANGE_PEND:
-            {
-                bool is_linked = key_isSet(session_key);
-                xmit_kcb = &gen_key_exchange(seq_number, is_linked, CONFIG_Z9_READER);
-                if (is_linked)
-                    state = LS_IDLE;
-            }
-            break;
-
         // polling for BOARD_INFO
         case LS_PEND_BOARD_INFO:
-            xmit_kcb = &gen_boardInfo(seq_number);
-            if (!key_isSet(session_key))
-                state = LS_KEY_XCHANGE_PEND;
-            else
-                state = LS_IDLE;
-            
+        {
+            auto hasSessionKey = key_isSet(session_key);
+            xmit_kcb = &gen_boardInfo(seq_number, hasSessionKey);
+            state = hasSessionKey ? LS_IDLE : LS_KEY_XCHANGE_WAIT;
+            break;
+        }
+        
+        // waiting for first KeyX from master
+        case LS_KEY_XCHANGE_WAIT:
+            break;
+
+        // after first KeyX from master, send our keys
+        case LS_KEY_XCHANGE_PEND:
+            {
+                // if have been sent "session key", fail the FSM later at calculate
+                // GSM. Need to move forward if Controller has sent "session key" so
+                // as not to get stuck in loop with remote sending LINKING key &
+                // controller sending "SESSION key"
+                bool hasPairKey    = key_isSet(link_key);
+                bool hasSessionKey = key_isSet(session_key);
+
+                bool haveEitherKey = hasPairKey || hasSessionKey;
+                bool haveBothKeys  = hasPairKey && hasSessionKey;
+                xmit_kcb = &gen_key_exchange(seq_number, hasSessionKey, CONFIG_Z9_READER);
+                //state = haveBothKeys ? LS_IDLE : LS_INIT;
+            }
             break;
 
         // in normal response mode
         case LS_IDLE:
-        default: 
             break;
     }
-
-    if (!xmit_kcb)
-        state = LS_IDLE;
 
     // if no initialization message pending, grab first off queue
     if (!xmit_kcb)
         xmit_kcb = queue_pop(&xmit_queue);
     
-    // if no message pending, generate a POLL
+    // if no message pending, generate an ACK
     if (!xmit_kcb)
         xmit_kcb = &gen_ack(seq_number);
 
     ack_pending = false;        // no ack pending now
 
+	//LOG_INF("%s: seq=%u, state=%s", __func__, seq_number, Z9IO_Link_State_str[state]); 
+ 
     // XXX eventually calculate CRC & push header
     xmit_kcb->push(seq_number++);
     xmit_kcb->push(0);
@@ -277,11 +285,12 @@ void Z9IO_Link::xmit_return(KCB& kcb)
 // here when receive operation complete
 bool Z9IO_Link::recv_return(KCB& kcb)
 {
-	//LOG_INF("%s: KCB=%u, size=%u, crc=%04x", __func__, kcb.id(), kcb.size(), recv_crc);
 
     // get information about receive operation
     auto size = kcb.size();
     auto c    = kcb.top().pop();      // retrieve first character: address or TIMEOUT flag
+	
+	//LOG_INF("%s: KCB=%u, addr=%u, size=%u, crc=%04x", __func__, kcb.id(), c, kcb.size(), recv_crc);
 
     if (c == Z9IO_FLAG)
     {
@@ -296,7 +305,7 @@ bool Z9IO_Link::recv_return(KCB& kcb)
     // check length: minimum addr/seq/cmd
     if (size < 3)
     {
-        LOG_INF("%s: short receive: %d bytes", __func__, size);
+        //LOG_INF("%s: short receive: %d bytes", __func__, size);
         return false;       // reset link
     }
 
@@ -306,28 +315,31 @@ bool Z9IO_Link::recv_return(KCB& kcb)
     // command byte used later: leave in recv buffer
     auto cmd  = kcb.top().peek();
 
+    //LOG_INF("%s: cmd=%u, seq=%u, state=%s", __func__, cmd, rx_seq_number,
+    //                                            Z9IO_Link_State_str[state]);
+
     // filter allowed cmds based on link FSM state
     // if cmd not allowed, replace with NULL command (zero)
     constexpr uint8_t NULL_DISCRIMINATOR = {};
 
-    // always allow POLL to be correct
-    if (cmd != Poll_DISCRIMINATOR)
+    // always allow POLL & HELLO to be correct
+    if (cmd != Poll_DISCRIMINATOR && cmd != Hello_DISCRIMINATOR)
     {
         switch (state)
         {
             case LS_INIT:
             default:
-                cmd = NULL_DISCRIMINATOR;
-                break;
+                state = LS_WAIT_HELLO;
+                // FALLSTHRU
 
+            // test is superflous...
             case LS_WAIT_HELLO:
                 if (cmd != Hello_DISCRIMINATOR)
                     cmd = NULL_DISCRIMINATOR;
                 break;
+
             case LS_KEY_XCHANGE_PEND:
             case LS_KEY_XCHANGE_WAIT:
-                if (cmd == Poll_DISCRIMINATOR)
-                    break;
                 if (cmd != EncryptionKeyExchange_DISCRIMINATOR)
                     cmd = NULL_DISCRIMINATOR;
                 break;
@@ -340,6 +352,7 @@ bool Z9IO_Link::recv_return(KCB& kcb)
     // handle locally processed messages and forward others inbound
     // all but POLL acked
     ack_pending = true;
+	//LOG_INF("%s: cmd=%u, state=%s", __func__, cmd, Z9IO_Link_State_str[state]); 
     switch (cmd)
     {
         case NULL_DISCRIMINATOR:
@@ -347,11 +360,6 @@ bool Z9IO_Link::recv_return(KCB& kcb)
             ack_pending = false;
             break;
 
-        case EncryptionKeyExchange_DISCRIMINATOR:
-            // processed locally
-            recv_keyexchange(kcb);
-            break;
-        
         case Hello_DISCRIMINATOR:
             // reset seq# to zero
             seq_number = 0;
@@ -363,6 +371,12 @@ bool Z9IO_Link::recv_return(KCB& kcb)
             encrypted_req = kcb.peek();
             break;
             
+        case EncryptionKeyExchange_DISCRIMINATOR:
+            // processed locally
+            state = LS_KEY_XCHANGE_PEND;   // received KeyX
+            recv_keyexchange(kcb);
+            break;
+        
         default:
             // send inbound
             Z9IO_Logic::get(_unit).recv(kcb);
@@ -396,14 +410,13 @@ void Z9IO_Link::recv_keyexchange(KCB& kcb)
     switch (response)
     {
         case EncryptionKeyExchangeType_LINKING_SEED_REQ:
-        case EncryptionKeyExchangeType_LINKING_SEED_RESP:
             // new LINKING SEED implicitly clears SESSION key
             key_clear(session_key);
             key_clear(link_key);
             key_ptr = link_key;
             break;
         case EncryptionKeyExchangeType_LINK_SESSION_SEED_REQ:
-        case EncryptionKeyExchangeType_LINK_SESSION_SEED_RESP:
+            // session key is xor of link key + both seeds
             key_set(session_key, link_key);
             key_ptr = session_key;
             break;
@@ -427,9 +440,18 @@ void Z9IO_Link::recv_keyexchange(KCB& kcb)
 
     if (response >= EncryptionKeyExchangeType_LINK_SESSION_SEED_REQ)
     {
-        key_set(gcm_key, session_key);
-        LOG_HEXDUMP_INF(gcm_key, 16, "GCM_KEY:");
-        auto result = Z9Crypto_gcmSetKey(psa_link_key, gcm_key, sizeof(gcm_key));
+        if (!key_isSet(link_key) || !key_isSet(session_key))
+        {
+            key_clear(link_key);
+            key_clear(session_key);
+            state = LS_INIT;
+        }
+        else
+        {
+            key_set(gcm_key, session_key);
+            LOG_HEXDUMP_INF(gcm_key, 16, "GCM_KEY:");
+            auto result = Z9Crypto_gcmSetKey(psa_link_key, gcm_key, sizeof(gcm_key));
+        }
     }
 }
 
@@ -468,7 +490,10 @@ void Z9IO_Link::recv_trampoline(struct k_work *cb)
     // process recv buffer. if error, restart FSM
     if (self->recv_kcb)
         if (!self->recv_return(*self->recv_kcb))
+        {
             self->state = LS_INIT;
+            self->ack_pending = false;
+        }
     
     // if KCB not consumed, release it
     if (self->recv_kcb)

@@ -20,7 +20,7 @@ static uint8_t z9_c_crypt_temp[512];
 uint8_t *Z9Crypto_random()
 {
     static uint8_t random[16];
-#if 0
+#if 1
     auto status = sys_csrand_get(random, sizeof(random));
     if (!status)
         return random;
@@ -155,6 +155,13 @@ gcm_status_t Z9Crypto_gcm_encrypt(gcm_key_id_t const& key,
                                                     text, z9_c_crypt_temp,
                                                     tag_length, tag);
     std::memcpy(text, z9_c_crypt_temp, text_length);
+#if 0
+    z9::z9_gcm::mbedtls_gcm_init(&ctx);
+    key_p = std::begin(key);
+    z9::z9_gcm::mbedtls_gcm_setkey(&ctx, cipher, key_p, 128);
+    auto s2 = z9::z9_gcm::mbedtls_gcm_auth_decrypt(&ctx, text_length, nonce, 12, NULL, 0, tag, tag_length, text, z9_c_crypt_temp);
+    if (s2) printk("%s: s2=%d\n", __func__, s2);
+#endif
     return status;
 }
 

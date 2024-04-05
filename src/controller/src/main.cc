@@ -19,8 +19,8 @@ LOG_MODULE_REGISTER(z9_ble, LOG_LEVEL_INF);
 #define RUN_LED_BLINK_INTERVAL 1000
 
 #define GREEN_LED_NODE  DT_ALIAS(led0)
-//#define RED_LED_NODE    DT_ALIAS(led1)
-#define RED_LED_NODE    DT_ALIAS(led0)
+#define RED_LED_NODE    DT_ALIAS(led1)
+//#define RED_LED_NODE    DT_ALIAS(led0)
 static const gpio_dt_spec green_led = GPIO_DT_SPEC_GET(GREEN_LED_NODE, gpios);
 static const gpio_dt_spec red_led   = GPIO_DT_SPEC_GET(RED_LED_NODE  , gpios);
 
@@ -62,8 +62,20 @@ static void perform_reset(struct k_work *work)
         abort();
 }
 
+static void led_motor_off(struct k_work *work)
+{
+        set_red_led(0);
+}
+
 K_WORK_DELAYABLE_DEFINE(pairing_timer, pairing_expired);
 K_WORK_DELAYABLE_DEFINE(reset_timer  , perform_reset);
+K_WORK_DELAYABLE_DEFINE(motor_timer  , led_motor_off);
+
+void led_motor()
+{
+        set_red_led(1);
+        k_work_schedule(&motor_timer, K_SECONDS(6));
+}
 
 bool privacy_state;
 static void button_changed(button_evt evt)
@@ -95,6 +107,7 @@ static void button_changed(button_evt evt)
         auto lock_mode = static_cast<uint8_t>(lock.mode);
         printk("%s: MODE=%d, PRIV=%d\n", __func__, lock_mode, privacy_state);
 }
+
 
 
 int main()

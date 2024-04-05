@@ -25,10 +25,10 @@ enum Z9IO_Link_State : uint8_t {
         , LS_WAIT_HELLO         // remote init
         , LS_PEND_BOARD_INFO    // remote pending send
         , LS_WAIT_BOARD_INFO    // controller init
-        , LS_KEY_XCHANGE_PEND
-        , LS_KEY_XCHANGE_WAIT
-        , LS_IDLE
-        , LS_WAIT
+        , LS_KEY_XCHANGE_WAIT   // remote waiting key exchange
+        , LS_KEY_XCHANGE_PEND   // remote pending send
+        , LS_IDLE               // normal-response-mode
+        , LS_WAIT               // RNR (not yet implemented)
         , NUM_Z9IO_Link_State
 };
 
@@ -37,8 +37,8 @@ static const char * const Z9IO_Link_State_str [NUM_Z9IO_Link_State] = {
     , [LS_WAIT_HELLO]      = "WAIT_HELLO"
     , [LS_PEND_BOARD_INFO] = "PEND_BOARD_INFO"
     , [LS_WAIT_BOARD_INFO] = "WAIT_INFO"
-    , [LS_KEY_XCHANGE_PEND] = "KEY_XCG_PEND"
     , [LS_KEY_XCHANGE_WAIT] = "KEY_XCG_WAIT"
+    , [LS_KEY_XCHANGE_PEND] = "KEY_XCG_PEND"
     , [LS_IDLE]             = "IDLE"
     , [LS_WAIT]             = "WAIT"
 };

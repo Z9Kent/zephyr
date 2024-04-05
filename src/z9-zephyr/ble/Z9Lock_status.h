@@ -29,3 +29,6 @@ struct Z9Lock_status
 
 // declare "global" object
 extern Z9Lock_status z9lock_status;
+
+extern void led_motor();		// 6 seconds
+extern void led_connect(bool);
