@@ -34,7 +34,12 @@
 
 // set Z9IO to arduino-serial (aka uart1)
 / {
-	aliases { z9io-serial = &arduino_serial; };
+	aliases {
+		z9io-serial = &arduino_serial;
+		red   = &led0;
+		green = &led1;
+		blue  = &led2;
+	};
 };
 
 &arduino_serial {

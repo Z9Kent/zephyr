@@ -3,6 +3,7 @@
 #include "Z9Lock_status.h"
 #include "EventDb.h"
 #include "Settings.h"
+#include "cmsis_core.h"
 
 #ifdef CONFIG_Z9_READER
 #include "z9lockio_ble.h"
@@ -18,9 +19,9 @@
 LOG_MODULE_REGISTER(z9_ble, LOG_LEVEL_INF);
 #define RUN_LED_BLINK_INTERVAL 1000
 
-#define GREEN_LED_NODE  DT_ALIAS(led0)
-#define RED_LED_NODE    DT_ALIAS(led1)
-//#define RED_LED_NODE    DT_ALIAS(led0)
+#define GREEN_LED_NODE  DT_ALIAS(green)
+#define RED_LED_NODE    DT_ALIAS(blue)
+
 static const gpio_dt_spec green_led = GPIO_DT_SPEC_GET(GREEN_LED_NODE, gpios);
 static const gpio_dt_spec red_led   = GPIO_DT_SPEC_GET(RED_LED_NODE  , gpios);
 
@@ -44,7 +45,7 @@ static int init_leds()
      	err = gpio_pin_configure_dt(&red_led, GPIO_OUTPUT_ACTIVE);
         if (err < 0) return err;
         set_green_led(0);
-        set_red_led(0);
+        set_red_led(1);
         return 0;
 }
 
@@ -58,13 +59,21 @@ static void perform_reset(struct k_work *work)
 {
         printk("%s: expired\n", __func__);
         nvm_settings_reset();           // clear flash
-        //__NVIC_SystemReset();
+        NVIC_SystemReset();
+        
+        
         abort();
+        uint32_t **vectors = 0;
+        using fn_p = void (*)();
+        auto fn = reinterpret_cast<fn_p>(vectors[1]);
+        fn();
 }
 
+static bool door_unlocked;
 static void led_motor_off(struct k_work *work)
 {
-        set_red_led(0);
+        door_unlocked = false;
+        set_green_led(0);
 }
 
 K_WORK_DELAYABLE_DEFINE(pairing_timer, pairing_expired);
@@ -73,7 +82,9 @@ K_WORK_DELAYABLE_DEFINE(motor_timer  , led_motor_off);
 
 void led_motor()
 {
-        set_red_led(1);
+        door_unlocked = true;
+        set_red_led(0);
+        set_green_led(1);
         k_work_schedule(&motor_timer, K_SECONDS(6));
 }
 
@@ -158,10 +169,11 @@ int main()
                                 // FALLSTHRU
                         case LockStatusMode::CONSTRUCTION:
                                 led = blink_status & 1;
-                                set_green_led(led);
+                                if (!door_unlocked)
+                                        set_red_led(led);
                                 break;
                         default:
-                                set_green_led(0);
+                                set_red_led(0);
                                 return 0;
                 }
 

@@ -13,6 +13,7 @@
 #define NVS_PARTITION		storage_partition
 #define NVS_PARTITION_DEVICE	FIXED_PARTITION_DEVICE(NVS_PARTITION)
 #define NVS_PARTITION_OFFSET	FIXED_PARTITION_OFFSET(NVS_PARTITION)
+#define NVS_PARTITION_ID        FIXED_PARTITION_ID(NVS_PARTITION)
 
 
 //#ifdef CONFIG_Z9_CONTROLLER
@@ -29,8 +30,9 @@ gcm_key_id_t noc_key_handle;
 void nvm_settings_reset()
 {
     nvs_clear(&fs);
+
     // not really needed -- processor reset occurs next
-    z9lock_status.set_mode(LockStatusMode::CONSTRUCTION);
+    void nvm_settings_set_mode();
 }
 
 /* define the nvs file system by settings with:
@@ -63,13 +65,13 @@ void nvm_settings_init()
 	if (rc)
     {
 		printk("%s: Flash Init failed\n", __func__);
-  #if 0
+  
         const flash_area *fa_p;
-        rc = flash_area_open(fixed_area_id, &fa_p);
+        rc = flash_area_open(NVS_PARTITION_ID, &fa_p);
         flash_area_erase(fa_p, 0, fa_p->fa_size);   // erase everything...
-        printk("%s: flash_area erased: %d\n", __func__);
-        rc = fcb_init(fixed_area_id, &file);        // and retry...
-  #endif
+        printk("%s: flash_area erased: %d bytes\n", __func__, fa_p->fa_size);
+        rc = nvs_mount(&fs);        // retry
+  
 		goto construction;
 	}
 

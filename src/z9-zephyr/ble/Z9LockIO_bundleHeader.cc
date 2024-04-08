@@ -228,5 +228,4 @@ void Z9LockIO_sendBundle(KCB& kcb)
     printk("\n");
 
     send_passThru(kcb);
-    KernelBuffer_dumpAllocs();
 }

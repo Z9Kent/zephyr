@@ -270,7 +270,7 @@ bool Z9IO_Logic::process_recv(KCB& kcb)
 
             // generate responses
             send(gen_boardStatusQuery(*this));
-
+#if 0
             // enable all digial inputs (first is zero)
             for (int i = 0; i <= MAX_INPUTS; ++i)
                 send(gen_digitalInConfig (*this, i, true));
@@ -288,7 +288,7 @@ bool Z9IO_Logic::process_recv(KCB& kcb)
                 analog |= 1 << i;
             for (int i = 0; i <= MAX_OUTPUTS; ++i)
                 output |= 1 << i;
-
+#endif
             //send(gen_config(*this, input, output, analog));
             // request lock public key from reader
             //send(gen_appKeyExchange (ApplicationEncryptionKeyExchangeType_PUBLIC_KEY_REQ));
