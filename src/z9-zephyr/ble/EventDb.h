@@ -110,9 +110,12 @@ struct LockEventFs
     // recycle oldest sector
     void rotate() { fcb_rotate(&file); }
 
-    bool isEmpty() { return fcb_is_empty(&file); }
+    bool isEmpty() { return !hasEvents; }
+    bool hasData(bool state);
+    
 private:
     fcb file {};
+    bool hasEvents {true};
 };
 
 // Declare the Event Database interface class

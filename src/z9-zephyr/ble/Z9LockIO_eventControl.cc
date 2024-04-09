@@ -36,16 +36,15 @@ void Z9LockIO_eventControl(KCB& kcb, uint8_t key)
 static void Z9LockIO_gen_evt_batch(bool priority)
 {
     static constexpr auto discriminator = LockEvtBatch::DISCRIMINATOR;
-    static constexpr auto maxEvents     = 32;
+    static constexpr auto maxEvents     = 5;
 
     // packet is encrypted & to NOC
     auto& kcb = *Z9LockIO_createBundleHeader(discriminator);
+
+    // packet data is priority + count + [count LockEvts]
     kcb.write(priority);
-    
-    // remember offset of next: will need to update
-    kcb.write(0);       // count of events (to be updated)
-    //auto countOffset = kcb.curPos();
-    auto countOffset = kcb.size();
+    kcb.write(0);                   // placeholder for count of events
+    auto countOffset = kcb.size();  // remember where count stored
 
     auto writer =[&kcb](uint8_t c) { kcb.write(c); };
     auto count = LockEventDb::instance().extract(priority, maxEvents, writer);
@@ -53,8 +52,18 @@ static void Z9LockIO_gen_evt_batch(bool priority)
         delete &kcb;
     else
     {
-        //kcb.seek(countOffset);
-        //kcb.poke(count);
+        kcb.seek(countOffset-1);
+        kcb.poke(count);
+        {
+            printk("%s: wrote %u at %u\n", __func__, count, countOffset);
+            kcb.top();
+            printk("%s: buffer: ", __func__);
+            auto i = kcb.size();
+            while(i--)
+                printk("%02x ", kcb.read());
+            printk("\n");
+        }
+        kcb.seek(kcb.length());
         Z9LockIO_sendBundle(kcb);
     }
 }

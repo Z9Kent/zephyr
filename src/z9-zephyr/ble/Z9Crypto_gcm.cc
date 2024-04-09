@@ -16,6 +16,8 @@ uint8_t raw_application_key[16];
 static uint8_t z9_c_crypt_temp[512];
 #endif
 
+void print_hex(const char *fn, const char *pfx, uint8_t const *data, std::size_t len);
+
 // generate a 128 bit random number
 uint8_t *Z9Crypto_random()
 {
@@ -160,7 +162,8 @@ gcm_status_t Z9Crypto_gcm_encrypt(gcm_key_id_t const& key,
     key_p = std::begin(key);
     z9::z9_gcm::mbedtls_gcm_setkey(&ctx, cipher, key_p, 128);
     auto s2 = z9::z9_gcm::mbedtls_gcm_auth_decrypt(&ctx, text_length, nonce, 12, NULL, 0, tag, tag_length, text, z9_c_crypt_temp);
-    if (s2) printk("%s: s2=%d\n", __func__, s2);
+   /* if (s2) */ printk("%s: s2=%d\n", __func__, s2);
+   print_hex(__func__, "output", z9_c_crypt_temp, text_length);
 #endif
     return status;
 }

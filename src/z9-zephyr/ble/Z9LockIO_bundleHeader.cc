@@ -16,6 +16,9 @@ using namespace z9;
 using namespace z9::protocols;
 using z9::protocols::z9lockio::getFormatter;
 
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(BundleIO, LOG_LEVEL_DBG);
+
 //static void z9lockio_gen_challenge(void *arg);
 #if 0
 uint8_t  sourceType, interType, destType;
@@ -147,7 +150,7 @@ void Z9LockIO_sendBundle(KCB& kcb)
     prependBundleHeader(*p);
 
     // if encryption requested, now's the time
-    if (opaque && 0)
+    if (opaque)
     {
         // select key based on destination
         gcm_key_handle_t *key_p {};
@@ -184,7 +187,7 @@ void Z9LockIO_sendBundle(KCB& kcb)
         auto iv  = &output_buffer[0];
         auto tag = &iv[12];
         auto s   = &tag[16];
-        static const auto dataOffset = s - output_buffer;
+        static const unsigned dataOffset = s - output_buffer;
 
         // generate a tag 
         std::memcpy(iv, Z9Crypto_random(), 12);
@@ -198,7 +201,10 @@ void Z9LockIO_sendBundle(KCB& kcb)
         }
 
         std::size_t encrypted = len;
+        //LOG_INF("%s: encrypted=%d, len=%d", __func__, encrypted, len);
+        //LOG_HEXDUMP_INF(output_buffer, len + dataOffset, "input");
         int result = Z9Crypto_gcm_encrypt(*key_p, iv, {}, 0, &output_buffer[dataOffset], encrypted, tag, 16);
+        //LOG_HEXDUMP_INF(output_buffer, len + dataOffset, "output");
 
         kcb.flush(z9ioHeaderSize + clearHeaderSize);
         s = output_buffer;
@@ -207,9 +213,10 @@ void Z9LockIO_sendBundle(KCB& kcb)
             kcb.write(*s++);
 
 #endif
+        len += 12 + 16;
         kcb.push(len);
         kcb.push(len >> 8);
-        prependPacketHeader(LockOpaqueContent::DISCRIMINATOR, len + opaqueSerializedLen);
+        prependPacketHeader(LockOpaqueContent::DISCRIMINATOR, len + 2);
 
         // mark "initial" bundle header as opaque with count of 1
         p->opaque = true;
