@@ -1,0 +1,38 @@
+# Atmel SAML MCU series
+
+# Copyright (c) 2021 Argentum Systems Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+choice
+	prompt "Atmel SAML22 MCU Selection"
+	depends on SOC_SERIES_SAML22
+
+config SOC_PART_NUMBER_SAML22G16A
+	bool "SAML22G16A"
+
+config SOC_PART_NUMBER_SAML22G17A
+	bool "SAML22G17A"
+
+config SOC_PART_NUMBER_SAML22G18A
+	bool "SAML22G18A"
+
+config SOC_PART_NUMBER_SAML22J16A
+	bool "SAML22J16A"
+
+config SOC_PART_NUMBER_SAML22J17A
+	bool "SAML22J17A"
+
+config SOC_PART_NUMBER_SAML22J18A
+	bool "SAML22J18A"
+
+config SOC_PART_NUMBER_SAML22N16A
+	bool "SAML22N16A"
+
+config SOC_PART_NUMBER_SAML22N17A
+	bool "SAML22N17A"
+
+config SOC_PART_NUMBER_SAML22N18A
+	bool "SAML22N18A"
+
+
+endchoice

@@ -1,0 +1,28 @@
+# Atmel SAML MCU series configuration options
+# KBH 08/17/2023
+# Copyright (c) 2021 Argentum Systems Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+if SOC_SERIES_SAML22
+
+config SOC_SERIES
+	default "saml22"
+
+config SOC_PART_NUMBER
+	default "saml22g16a" if SOC_PART_NUMBER_SAML22G16A
+	default "saml22g17a" if SOC_PART_NUMBER_SAML22G17A
+	default "saml22g18a" if SOC_PART_NUMBER_SAML22G18A
+	default "saml22j16a" if SOC_PART_NUMBER_SAML22J16A
+	default "saml22j17a" if SOC_PART_NUMBER_SAML22J17A
+	default "saml22j18a" if SOC_PART_NUMBER_SAML22J18A
+	default "saml22n16a" if SOC_PART_NUMBER_SAML22N16A
+	default "saml22n17a" if SOC_PART_NUMBER_SAML22N17A
+	default "saml22n18a" if SOC_PART_NUMBER_SAML22N18A
+
+config NUM_IRQS
+	default 27
+
+config SYS_CLOCK_HW_CYCLES_PER_SEC
+	default	$(dt_node_int_prop_int,/cpus/cpu@0,clock-frequency)
+
+endif # SOC_SERIES_SAML22

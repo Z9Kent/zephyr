@@ -112,7 +112,7 @@
  */
 #if defined(MCLK_APBDMASK_ADC) || defined(MCLK_APBDMASK_ADC0)
 #  define MCLK_ADC (MCLK->APBDMASK.reg)
-#elif defined(MCLK_APBCMASK_ADC0)
+#elif defined(MCLK_APBCMASK_ADC) || defined(MCLK_APBCMASK_ADC0)
 #  define MCLK_ADC (MCLK->APBCMASK.reg)
 #else
 #  error ADC not supported...
