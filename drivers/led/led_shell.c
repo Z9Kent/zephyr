@@ -144,6 +144,58 @@ static int cmd_get_info(const struct shell *sh, size_t argc, char **argv)
 	return 0;
 }
 
+static int cmd_blink(const struct shell *sh, size_t argc, char **argv)
+{
+	const struct device *dev;
+	uint32_t led;
+	int err;
+	char *end_ptr;
+	unsigned long time_on, time_off;
+
+	err = parse_common_args(sh, argv, &dev, &led);
+	if (err < 0) {
+		return err;
+	}
+
+	time_on = strtoul(argv[arg_idx_value], &end_ptr, 0);
+	if (*end_ptr != '\0') {
+		shell_error(sh, "Invalid LED on duration %s",
+			     argv[arg_idx_value]);
+		return -EINVAL;
+	}
+#if 0
+	if (time_on > 100) {
+		shell_error(sh, "Invalid LED brightness value %lu (max 100)",
+			    value);
+		return -EINVAL;
+	}
+#endif
+
+	time_off = strtoul(argv[arg_idx_value + 1], &end_ptr, 0);
+	if (*end_ptr != '\0') {
+		shell_error(sh, "Invalid LED off duration %s",
+			     argv[arg_idx_value + 1]);
+		return -EINVAL;
+	}
+#if 0
+	if (time_on > 100) {
+		shell_error(sh, "Invalid LED brightness value %lu (max 100)",
+			    value);
+		return -EINVAL;
+	}
+#endif
+
+	shell_print(sh, "%s: blinking LED %d: on = %lu, off = %lu",
+		    dev->name, led, time_on, time_off);
+
+	err = led_blink(dev, led, time_on, time_off);
+	if (err) {
+		shell_error(sh, "Error: %d", err);
+	}
+
+	return err;
+}
+
 static int cmd_set_brightness(const struct shell *sh,
 			      size_t argc, char **argv)
 {
@@ -345,6 +397,7 @@ SHELL_DYNAMIC_CMD_CREATE(dsub_device_name, device_name_get);
 SHELL_STATIC_SUBCMD_SET_CREATE(
 	sub_led, SHELL_CMD_ARG(off, &dsub_device_name, "<device> <led>", cmd_off, 3, 0),
 	SHELL_CMD_ARG(on, &dsub_device_name, "<device> <led>", cmd_on, 3, 0),
+	SHELL_CMD_ARG(blink, &dsub_device_name, "<device> <led> <time_on> <time_off>", cmd_blink, 5, 0),
 	SHELL_CMD_ARG(get_info, &dsub_device_name, "<device> <led>", cmd_get_info, 3, 0),
 	SHELL_CMD_ARG(set_brightness, &dsub_device_name, "<device> <led> <value [0-100]>",
 		      cmd_set_brightness, 4, 0),

@@ -113,6 +113,23 @@ static int pca9633_led_blink(const struct device *dev, uint32_t led,
 		LOG_ERR("LED reg update failed");
 		return -EIO;
 	}
+	
+	/* If brightness is zero, set to maximum */
+	uint8_t brightness;
+	if (i2c_reg_read_byte_dt(&config->i2c, 
+				PCA9633_PWM_BASE + led,
+			 	&brightness)) {
+		LOG_ERR("LED reg read failed");
+		return -EIO;
+	}
+	if (brightness == 0) {
+		if (i2c_reg_write_byte_dt(&config->i2c,
+					PCA9633_PWM_BASE + led,
+					0xff)) {
+			LOG_ERR("LED reg write failed");
+			return -EIO;
+		}
+	}
 
 	return 0;
 }
@@ -212,6 +229,8 @@ static int pca9633_led_init(const struct device *dev)
 	dev_data->max_period = 10667U;
 	dev_data->min_brightness = 0U;
 	dev_data->max_brightness = 100U;
+		
+	LOG_INF("%s: LED is initialized", dev->name);
 
 	return 0;
 }
