@@ -25,6 +25,7 @@ LOG_MODULE_REGISTER(gpio_pca_series);
 
 /** Private debug macro, enable more error checking and print more log. */
 /* #define GPIO_NXP_PCA_SERIES_DEBUG */
+//#define GPIO_NXP_PCA_SERIES_DEBUG
 
 /* Feature flags */
 #define PCA_HAS_LATCH	   BIT(0)	/** + output_drive_strength, + input_latch */
@@ -319,10 +320,18 @@ static inline int gpio_pca_series_reg_read(const struct device *dev,
 		return -EFAULT;
 	}
 #endif /* GPIO_NXP_PCA_SERIES_DEBUG */
+#if 0
+#ifdef CONFIG_DT_HAS_NXP_PCAL6524_ENABLED
+	if (size)
+		addr |= 0x80;	// enable autoincement
+#endif
+#endif
 
 	ret = i2c_write_read_dt(&cfg->i2c, (uint8_t *)&addr, 1, (uint8_t *)buf, size);
 	if (ret) {
 		LOG_ERR("i2c read error [%d]", ret);
+		LOG_ERR("%s: type %d addr 0x%x len %d", __func__, reg_type, addr, size);
+		LOG_HEXDUMP_DBG(buf, size, "Data");
 	}
 	return ret;
 }
@@ -361,7 +370,15 @@ static inline int gpio_pca_series_reg_write(const struct device *dev,
 #endif /* GPIO_NXP_PCA_SERIES_DEBUG */
 
 	LOG_DBG("device write type %d addr 0x%x len %d", reg_type, addr, size);
-
+	LOG_HEXDUMP_DBG(buf, size, "Data");
+#if 0
+#ifdef CONFIG_DT_HAS_NXP_PCAL6524_ENABLED
+	if (size)
+		addr |= 0x80;	// enable autoincement
+#endif
+#endif
+	k_sleep(K_USEC(10));
+#if 0
 	msg[0].buf = (uint8_t *)&addr;
 	msg[0].len = 1;
 	msg[0].flags = I2C_MSG_WRITE;
@@ -369,8 +386,17 @@ static inline int gpio_pca_series_reg_write(const struct device *dev,
 	msg[1].len = size;
 	msg[1].flags = I2C_MSG_WRITE | I2C_MSG_STOP;
 	ret = i2c_transfer_dt(&cfg->i2c, msg, 2);
+#else
+	uint8_t data[10], *p = data;
+	*p++ = addr;
+	memcpy(p, buf, size);
+	ret = i2c_write_dt(&cfg->i2c, data, size + 1);
+#endif
 	if (ret) {
 		LOG_ERR("i2c write error [%d]", ret);
+		LOG_ERR("%s: type %d addr 0x%x len %d", __func__, reg_type, addr, size);
+		LOG_HEXDUMP_ERR(buf, size, "Data written");
+
 		return ret;
 	}
 
@@ -667,12 +693,12 @@ static inline void gpio_pca_series_reset(const struct device *dev)
 		if (ret) {
 			goto sw_rst;
 		}
-		k_sleep(K_USEC(1));
+		k_sleep(K_USEC(10));
 		ret = gpio_pin_set_dt(&cfg->gpio_rst, 0U);
 		if (ret) {
 			goto sw_rst;
 		}
-		k_sleep(K_USEC(1));
+		k_sleep(K_USEC(10));
 		return;
 	}
 
@@ -1000,9 +1026,11 @@ static int gpio_pca_series_pin_configure(const struct device *dev,
 		reg_value = sys_cpu_to_le32(reg_value);
 		ret = gpio_pca_series_reg_write(dev, PCA_REG_TYPE_1B_OUTPUT_PORT,
 						(uint8_t *)&reg_value);
+#if 0
 		if (ret != 0) {
 			goto out;
 		}
+#endif
 #ifndef CONFIG_GPIO_PCA_SERIES_CACHE_ALL
 		/** update output register old value to void* cache raw value */
 		gpio_pca_series_reg_cache_mini_get(dev)->output =

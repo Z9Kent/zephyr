@@ -211,6 +211,17 @@ static int pca9633_led_init(const struct device *dev)
 		return -ENODEV;
 	}
 
+	/* software reset the device */
+	static const uint8_t pca9633_reset[] = { 0x03, 0xa5, 0x5a };
+	int res;
+	res = i2c_write(config->i2c.bus,			// i2c bus
+					pca9633_reset+1,			// data: 0xa5, 0xa5
+					sizeof(pca9633_reset)-1,	// two bytes
+					pca9633_reset[0]);			// i2c address (0x03)
+	if (res) {
+		LOG_ERR("%s: software reset failed [%d]", dev->name, res);
+	}
+
 	/*
 	 * Take the LED driver out from Sleep mode and disable All Call Address
 	 * if specified in DT.
